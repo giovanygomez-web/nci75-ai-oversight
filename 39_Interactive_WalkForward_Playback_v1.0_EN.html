@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Walk-Forward Playback · 180 OOS months · Practicum Part 2</title>
+<style>
+:root{
+  --ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;
+  --lgray:#E2E8F0;--xlgray:#F1F5F9;
+  --blue:#2563EB;--lblue:#DBEAFE;
+  --teal:#0D9488;--lteal:#CCFBF1;
+  --green:#15803D;--lgreen:#DCFCE7;
+  --amber:#D97706;--lamber:#FEF3C7;
+  --red:#B91C1C;--lred:#FEE2E2;
+  --purple:#7E22CE;--lpurple:#F3E8FF;
+  --gray-line:#94A3B8;
+}
+*{box-sizing:border-box;}
+body{margin:0;padding:20px 28px 30px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#F0F2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.5;}
+.wrap{max-width:1400px;margin:0 auto;}
+
+.kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:6px;}
+h1{font-family:Georgia,serif;font-size:24px;font-weight:700;margin:0 0 6px;line-height:1.25;}
+.sub{font-size:12.5px;color:var(--muted);font-style:italic;margin:0 0 18px;}
+
+/* Panels */
+.panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:14px 18px;margin-bottom:14px;}
+.panel h2{font-family:Georgia,serif;font-size:14px;margin:0 0 10px;color:var(--ink);border-bottom:2px solid var(--amber);padding-bottom:5px;}
+
+/* Chart */
+.chart-container{position:relative;background:var(--white);}
+svg.chart{width:100%;height:auto;display:block;}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px;justify-content:center;}
+.leg{display:flex;align-items:center;gap:6px;}
+.leg-line{width:20px;height:3px;border-radius:2px;}
+
+/* Control bar */
+.controls{display:grid;grid-template-columns:auto auto auto auto 1fr auto;gap:14px;align-items:center;background:var(--ink);color:var(--white);padding:12px 18px;border-radius:10px;margin-bottom:14px;}
+.btn{background:var(--amber);color:var(--white);border:none;border-radius:6px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:13px;transition:all 0.15s;font-family:inherit;}
+.btn:hover{background:#B45309;transform:translateY(-1px);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn.sec{background:#334155;}
+.btn.sec:hover{background:#475569;}
+.speed-group{display:flex;gap:4px;}
+.speed-btn{background:#334155;color:#CBD5E1;border:none;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:700;transition:all 0.15s;}
+.speed-btn:hover{background:#475569;color:var(--white);}
+.speed-btn.active{background:var(--amber);color:var(--white);}
+.time-slider{width:100%;height:6px;background:#334155;border-radius:3px;outline:none;-webkit-appearance:none;}
+.time-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.4);}
+.time-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);cursor:pointer;border:none;}
+.time-display{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--amber);white-space:nowrap;}
+
+/* Stats layout */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.stat-card{background:var(--white);border:1px solid var(--lgray);border-left:4px solid;border-radius:8px;padding:12px 14px;}
+.stat-card.mvo{border-left-color:var(--blue);}
+.stat-card.oly{border-left-color:var(--purple);}
+.stat-card.n1{border-left-color:var(--gray-line);}
+.stat-card.delta{border-left-color:var(--amber);}
+.stat-card.dsr{border-left-color:var(--teal);}
+.stat-card.pbo{border-left-color:var(--red);}
+.stat-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.stat-val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);}
+.stat-sub{font-size:10.5px;color:var(--muted);}
+.stat-sub.up{color:var(--green);font-weight:700;}
+.stat-sub.dn{color:var(--red);font-weight:700;}
+
+/* Sub-period tracker */
+.subp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.subp{background:var(--xlgray);border-left:3px solid;border-radius:6px;padding:9px 12px;position:relative;overflow:hidden;}
+.subp.active{background:var(--lamber);border-left-color:var(--amber);box-shadow:0 0 0 2px var(--amber);}
+.subp.past{border-left-color:var(--green);background:var(--lgreen);}
+.subp.future{border-left-color:var(--muted);opacity:0.55;}
+.subp-name{font-family:Georgia,serif;font-weight:700;font-size:12px;color:var(--ink);}
+.subp-sharpe{font-family:ui-monospace,Menlo,monospace;font-size:16px;font-weight:700;margin-top:2px;}
+.subp-delta{font-size:11px;color:var(--muted);}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:1fr 320px;gap:14px;}
+@media (max-width:1100px){.layout{grid-template-columns:1fr;}}
+
+/* Weight bars */
+.weights-container{display:flex;flex-direction:column;gap:4px;}
+.weight-row{display:grid;grid-template-columns:50px 1fr 60px;gap:8px;align-items:center;font-size:11px;}
+.wt-name{font-family:Georgia,serif;font-weight:700;font-size:11px;}
+.wt-name.spy{color:var(--blue);} .wt-name.agg{color:var(--teal);} .wt-name.dbc{color:var(--amber);} .wt-name.tb3ms{color:var(--purple);}
+.wt-bar{height:16px;background:var(--xlgray);border-radius:3px;overflow:hidden;position:relative;}
+.wt-fill{height:100%;transition:width 0.3s;}
+.wt-fill.spy{background:var(--blue);}
+.wt-fill.agg{background:var(--teal);}
+.wt-fill.dbc{background:var(--amber);}
+.wt-fill.tb3ms{background:var(--purple);}
+.wt-val{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;text-align:right;color:var(--ink);}
+
+/* Event annotations */
+.events{position:relative;height:44px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--lgray);}
+.event{position:absolute;top:8px;font-size:9.5px;color:var(--red);}
+.event:before{content:"▼";display:block;text-align:center;font-size:11px;color:var(--red);}
+
+/* Callout */
+.callout{background:var(--lteal);border-left:3px solid var(--teal);padding:10px 14px;border-radius:5px;margin:8px 0;font-size:11.5px;}
+.callout b{color:var(--teal);}
+.callout.warn{background:var(--lamber);border-left-color:var(--amber);}
+.callout.warn b{color:var(--amber);}
+
+/* Explainer */
+.info-row{display:flex;gap:12px;font-size:10.5px;color:var(--muted);margin:6px 0;}
+.info-row b{color:var(--ink);font-weight:700;}
+
+.foot{margin-top:20px;padding:12px 18px;background:var(--white);border:1px solid var(--lgray);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;}
+
+/* $1M portfolio tracker */
+.pv-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 18px;padding:14px 18px;background:linear-gradient(90deg,#F8FAFC 0%,#FFFFFF 100%);border:1px solid var(--lgray);border-left:4px solid var(--amber);border-radius:10px;}
+.pv-title{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.pv-title .lbl{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.pv-title .starting{font-size:10px;color:var(--muted);font-style:italic;}
+.pv-card{padding:8px 12px;background:var(--white);border:1px solid var(--lgray);border-radius:6px;}
+.pv-card .lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.pv-card .val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;}
+.pv-card .chg{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-top:2px;}
+.pv-card .chg.pos{color:var(--green);} .pv-card .chg.neg{color:var(--red);}
+.pv-card.mvo{border-left:3px solid var(--blue);}
+.pv-card.oly{border-left:3px solid var(--purple);}
+.pv-card.n1{border-left:3px solid var(--muted);}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">WALK-FORWARD PLAYBACK · 180 OUT-OF-SAMPLE MONTHS · JAN 2010 → DEC 2024</div>
+<h1>Watch the pipeline build the equity curves month by month</h1>
+<p class="sub">Press <b>Play</b> to run the 180-month walk-forward at your chosen speed, or drag the time slider to scrub to any point in the OOS window. Baseline MVO (blue), bounded overlay (purple), and 1/N sanity control (grey) are simulated with monthly returns that match the reported statistics (baseline Sharpe 0.648, overlay Sharpe 0.657, Δ +0.009).</p>
+
+<!-- CHART -->
+<div class="panel">
+  <h2>Equity curves · cumulative growth from $1.00</h2>
+  <div class="chart-container">
+    <svg class="chart" viewBox="0 0 1200 380" preserveAspectRatio="xMidYMid meet">
+      <!-- axes drawn dynamically -->
+      <g id="chart-axes"></g>
+      <g id="chart-drawdown"></g>
+      <g id="chart-lines"></g>
+      <g id="chart-events"></g>
+      <g id="chart-cursor"></g>
+      <g id="chart-labels"></g>
+    </svg>
+  </div>
+  <div class="chart-legend">
+    <div class="leg"><span class="leg-line" style="background:var(--blue);"></span>WP2 baseline MVO</div>
+    <div class="leg"><span class="leg-line" style="background:var(--purple);"></span>WP3 bounded overlay</div>
+    <div class="leg"><span class="leg-line" style="background:var(--gray-line);"></span>1/N sanity control</div>
+    <div class="leg"><span class="leg-line" style="background:var(--red);"></span>Drawdown (baseline)</div>
+    <div class="leg"><span class="leg-line" style="background:var(--amber);"></span>Sub-period boundaries</div>
+  </div>
+</div>
+
+<!-- CONTROL BAR -->
+<div class="controls">
+  <button class="btn" id="btn-play">▶ Play</button>
+  <button class="btn sec" id="btn-back" title="Step back">« Step</button>
+  <button class="btn sec" id="btn-fwd" title="Step forward">Step »</button>
+  <button class="btn sec" id="btn-reset">Reset</button>
+  <input type="range" class="time-slider" id="time-slider" min="0" max="179" value="0" step="1">
+  <div class="time-display" id="time-display">2010-01</div>
+  <div class="speed-group">
+    <button class="speed-btn active" data-speed="1">1×</button>
+    <button class="speed-btn" data-speed="4">4×</button>
+    <button class="speed-btn" data-speed="10">10×</button>
+    <button class="speed-btn" data-speed="25">25×</button>
+  </div>
+</div>
+
+<!-- STATS + WEIGHTS -->
+<div class="layout">
+  <div>
+    <div class="panel">
+      <h2>Cumulative performance at current month</h2>
+      <div class="stats-grid">
+        <div class="stat-card mvo"><div class="stat-lbl">MVO baseline</div><div class="stat-val" id="stat-mvo">1.00×</div><div class="stat-sub" id="stat-mvo-sub">Sharpe: —</div></div>
+        <div class="stat-card oly"><div class="stat-lbl">Bounded overlay</div><div class="stat-val" id="stat-oly">1.00×</div><div class="stat-sub" id="stat-oly-sub">Sharpe: —</div></div>
+        <div class="stat-card n1"><div class="stat-lbl">1/N control</div><div class="stat-val" id="stat-n1">1.00×</div><div class="stat-sub" id="stat-n1-sub">Sharpe: —</div></div>
+        <div class="stat-card delta"><div class="stat-lbl">Δ overlay − baseline (Sharpe)</div><div class="stat-val" id="stat-delta">—</div><div class="stat-sub" id="stat-delta-sub">annualised</div></div>
+        <div class="stat-card dsr"><div class="stat-lbl">MaxDD baseline</div><div class="stat-val" id="stat-mdd">—</div><div class="stat-sub" id="stat-mdd-sub">worst drawdown</div></div>
+        <div class="stat-card pbo"><div class="stat-lbl">Months elapsed</div><div class="stat-val" id="stat-months">0 / 180</div><div class="stat-sub" id="stat-months-sub">out-of-sample</div></div>
+<div class="pv-strip">
+  <div class="pv-title">
+    <span class="lbl">$1,000,000 portfolio value</span>
+    <span class="starting">starting capital · Jan 2010 · in USD</span>
+  </div>
+  <div class="pv-card mvo">
+    <div class="lbl">MVO baseline</div>
+    <div class="val" id="pv-mvo">$1,000,000</div>
+    <div class="chg" id="pv-mvo-chg">start</div>
+  </div>
+  <div class="pv-card oly">
+    <div class="lbl">Bounded overlay</div>
+    <div class="val" id="pv-oly">$1,000,000</div>
+    <div class="chg" id="pv-oly-chg">start</div>
+  </div>
+  <div class="pv-card n1">
+    <div class="lbl">1/N control</div>
+    <div class="val" id="pv-n1">$1,000,000</div>
+    <div class="chg" id="pv-n1-chg">start</div>
+  </div>
+</div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Sub-period breakdown (Sharpe per bucket)</h2>
+      <div class="subp-grid" id="subp-grid"></div>
+      <p class="info-row"><b>Pre-registered slices:</b> The full 15-year OOS window is split into three equal-length sub-periods, monitored separately per Pre-Reg §6.1.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Notable events</h2>
+      <div id="events-list" style="font-size:11.5px;line-height:1.7;"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>Current weights (this month)</h2>
+      <h3 style="font-size:11px;color:var(--muted);margin:6px 0 4px;">MVO baseline</h3>
+      <div class="weights-container" id="wt-mvo"></div>
+      <h3 style="font-size:11px;color:var(--muted);margin:12px 0 4px;">Bounded overlay</h3>
+      <div class="weights-container" id="wt-oly"></div>
+      <div class="callout" id="cap-callout" style="display:none;margin-top:12px;">
+        <b>HOTL cap active.</b> The overlay wanted to move more than ±10 pp on at least one asset this month; the cap is enforcing the pre-registered bound.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Playback log</h2>
+      <p style="font-size:10.5px;color:var(--muted);margin:0 0 6px;">Last 5 walk-forward decisions</p>
+      <div id="playback-log" style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--muted);line-height:1.7;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  Walk-forward playback v1.0 · 180 OOS months · monthly returns synthesised to match the reported statistics (baseline Sharpe 0.648, overlay 0.657, 1/N 0.511) for pedagogical clarity · Pre-Registration v1.0 (13-Jun-2026) governs the underlying evaluation · Giovany Gomez Molina (x23255927) · MSCDAD_A
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// SIMULATE 180 MONTHLY RETURNS
+// ============================================================
+// Target stats (from reported experiments):
+//   MVO monthly:  mean 0.00535, std 0.0287, Sharpe 0.648 (annualised)
+//   Overlay:      mean 0.00538, std 0.0284, Sharpe 0.657
+//   1/N:          mean 0.00498, std 0.0338, Sharpe 0.511
+//   MaxDD MVO ≈ -0.255 (during 2020 COVID)
+//   Correlation MVO~Overlay ≈ 0.97
+
+const N_MONTHS = 180;
+const START_YEAR = 2010, START_MONTH = 1;
+
+function seedRandom(seed){
+  return function(){
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
+function normalRand(rand){
+  // Box-Muller
+  let u=0, v=0;
+  while(u===0) u = rand();
+  while(v===0) v = rand();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+const rand = seedRandom(42);
+const returns = {mvo:[], oly:[], n1:[]};
+
+for (let i=0; i<N_MONTHS; i++){
+  // Base normal shock (shared factor between MVO and Overlay for correlation)
+  const shared = normalRand(rand);
+  const mvoNoise = normalRand(rand) * 0.007;
+  const olyNoise = normalRand(rand) * 0.007;
+
+  let mvo = 0.00535 + 0.0272 * shared + mvoNoise;
+  let oly = 0.00538 + 0.0268 * shared + olyNoise;
+  let n1  = 0.00498 + 0.0330 * normalRand(rand);
+
+  // Inject known events:
+  // - March 2020 COVID: month index 122 (2010-01 + 122 = 2020-03)
+  if (i === 122){ mvo = -0.148; oly = -0.145; n1 = -0.185; }
+  if (i === 123){ mvo = -0.098; oly = -0.094; n1 = -0.115; }
+  if (i === 124){ mvo = +0.115; oly = +0.117; n1 = +0.128; }
+  // - 2022 tightening drawdown (Jan-Sep 2022): months 144-152
+  if (i >= 144 && i <= 152){
+    mvo -= 0.012 + Math.abs(normalRand(rand)) * 0.008;
+    oly -= 0.011 + Math.abs(normalRand(rand)) * 0.008;
+    n1  -= 0.014 + Math.abs(normalRand(rand)) * 0.010;
+  }
+  // - 2023 recovery bounce
+  if (i >= 156 && i <= 168){
+    mvo += 0.005; oly += 0.006; n1 += 0.008;
+  }
+
+  returns.mvo.push(mvo);
+  returns.oly.push(oly);
+  returns.n1.push(n1);
+}
+
+// Compute cumulative equity
+function cumProd(r){
+  const eq = [1.0];
+  for (const x of r) eq.push(eq[eq.length-1] * (1+x));
+  return eq;   // length N+1
+}
+const eq = {mvo: cumProd(returns.mvo), oly: cumProd(returns.oly), n1: cumProd(returns.n1)};
+
+// Simulated weights per month (illustrative — plausible allocation dynamics)
+function simulateWeights(t){
+  // MVO baseline: tilts slightly to equity as time passes; hits stress in COVID
+  const baseSPY = 0.34 + 0.06 * Math.sin(t * 0.08);
+  const baseAGG = 0.44 - 0.05 * Math.sin(t * 0.08);
+  let s = baseSPY, a = baseAGG, d = 0.13, c = 0.09;
+  if (t >= 120 && t <= 128){ // COVID stress
+    s -= 0.10; a += 0.03; d -= 0.02; c += 0.09;
+  }
+  // Normalise
+  const total = s+a+d+c;
+  return {SPY: s/total, AGG: a/total, DBC: d/total, TB3MS: c/total};
+}
+
+function overlayAdjustments(t, mvoWts){
+  // Bounded overlay adjustments (illustrative, capped at ±10pp)
+  const wave = Math.sin(t * 0.15);
+  const adj = {
+    SPY:  0.025 * wave,
+    AGG: -0.020 * wave,
+    DBC:  0.015 * Math.sin(t * 0.22 + 1.0),
+    TB3MS: -0.020 * Math.sin(t * 0.22 + 1.0),
+  };
+  let capActive = false;
+  for (const k in adj){
+    if (Math.abs(adj[k]) > 0.10 - 0.001){ capActive = true; }
+    adj[k] = Math.max(-0.10, Math.min(0.10, adj[k]));
+  }
+  return {adj, capActive};
+}
+
+function monthLabel(idx){
+  const totalMonths = START_MONTH - 1 + idx;
+  const y = START_YEAR + Math.floor(totalMonths / 12);
+  const m = (totalMonths % 12) + 1;
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+
+function computeSharpe(r){
+  if (r.length < 3) return NaN;
+  const m = r.reduce((a,b)=>a+b, 0) / r.length;
+  const v = r.reduce((s,x)=>s+(x-m)**2, 0) / (r.length - 1);
+  const sd = Math.sqrt(v);
+  if (sd === 0) return NaN;
+  return (m / sd) * Math.sqrt(12); // annualised (monthly)
+}
+
+function computeMaxDD(eqSeries){
+  let peak = eqSeries[0]; let maxDD = 0; let ddSeries = [];
+  for (const v of eqSeries){
+    if (v > peak) peak = v;
+    const dd = (v - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+    ddSeries.push(dd);
+  }
+  return {maxDD, ddSeries};
+}
+
+// Notable events for annotations
+const EVENTS = [
+  {monthIdx: 12,  label: "2011 · Debt-ceiling crisis"},
+  {monthIdx: 45,  label: "2013 · Taper tantrum"},
+  {monthIdx: 71,  label: "2015 · China devaluation"},
+  {monthIdx: 84,  label: "2016 · US election"},
+  {monthIdx: 108, label: "2018 · Vol-mageddon"},
+  {monthIdx: 122, label: "2020 · COVID crash"},
+  {monthIdx: 144, label: "2022 · Fed tightening"},
+  {monthIdx: 168, label: "2024 · AI rally"},
+];
+
+// Sub-periods
+const SUB_PERIODS = [
+  {name: "2010–2015", from: 0,   to: 71},
+  {name: "2016–2020", from: 72,  to: 131},
+  {name: "2021–2024", from: 132, to: 179},
+];
+
+// ============================================================
+// CHART DRAWING
+// ============================================================
+const SVG_W = 1200, SVG_H = 380;
+const M = {top:20, right:80, bottom:40, left:60};
+const PW = SVG_W - M.left - M.right;
+const PH = SVG_H - M.top - M.bottom;
+
+function xScale(t){ return M.left + (t / (N_MONTHS-1)) * PW; }
+
+function yScale(v, min, max){
+  const range = max - min;
+  return M.top + PH - ((v - min) / range) * PH * 0.85;
+}
+
+let yMin = 0.85, yMax = 3.0;   // starting range; expand dynamically
+
+function pointsPath(series, upto){
+  let d = "";
+  for (let i=0; i<=upto; i++){
+    const x = xScale(i);
+    const y = yScale(series[i], yMin, yMax);
+    d += (i===0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+  }
+  return d;
+}
+
+function drawAxes(){
+  const g = document.getElementById("chart-axes");
+  let html = "";
+  // Y axis ticks
+  for (let v of [1.0, 1.5, 2.0, 2.5, 3.0]){
+    const y = yScale(v, yMin, yMax);
+    html += `<line x1="${M.left}" x2="${M.left+PW}" y1="${y}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>`;
+    html += `<text x="${M.left - 10}" y="${y + 4}" text-anchor="end" font-size="10" fill="#5A6378" font-family="monospace">${v.toFixed(1)}×</text>`;
+  }
+  // X axis year ticks (every 2 years)
+  for (let y = 2010; y <= 2024; y += 2){
+    const t = (y - 2010) * 12;
+    if (t <= N_MONTHS){
+      const x = xScale(t);
+      html += `<line x1="${x}" x2="${x}" y1="${M.top + PH}" y2="${M.top + PH + 5}" stroke="#5A6378" stroke-width="1"/>`;
+      html += `<text x="${x}" y="${M.top + PH + 18}" text-anchor="middle" font-size="10" fill="#5A6378" font-family="monospace">${y}</text>`;
+    }
+  }
+  // Sub-period boundaries
+  for (const sp of SUB_PERIODS){
+    if (sp.from > 0){
+      const x = xScale(sp.from);
+      html += `<line x1="${x}" x2="${x}" y1="${M.top}" y2="${M.top + PH}" stroke="#D97706" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>`;
+    }
+  }
+  g.innerHTML = html;
+}
+
+function drawLines(upto){
+  const g = document.getElementById("chart-lines");
+  let html = "";
+  // Drawdown fill (baseline)
+  const {ddSeries: dd} = computeMaxDD(eq.mvo.slice(0, upto+2));
+  let ddPath = `M${xScale(0)},${yScale(eq.mvo[0], yMin, yMax)} `;
+  for (let i=0; i<=upto+1 && i<dd.length; i++){
+    ddPath += `L${xScale(i)},${yScale(eq.mvo[i], yMin, yMax)} `;
+  }
+  // Underlying baseline
+  for (let i=upto+1; i>=0 && i<eq.mvo.length; i--){
+    const peakVal = eq.mvo.slice(0, i+1).reduce((mx,v)=>Math.max(mx,v), 0);
+    ddPath += `L${xScale(i)},${yScale(peakVal, yMin, yMax)} `;
+  }
+  ddPath += "Z";
+  html += `<path d="${ddPath}" fill="#FEE2E2" opacity="0.5"/>`;
+
+  // Lines
+  html += `<path d="${pointsPath(eq.n1, upto)}" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="3,3"/>`;
+  html += `<path d="${pointsPath(eq.mvo, upto)}" fill="none" stroke="#2563EB" stroke-width="2.5"/>`;
+  html += `<path d="${pointsPath(eq.oly, upto)}" fill="none" stroke="#7E22CE" stroke-width="2.5"/>`;
+
+  // Dots at current month
+  if (upto >= 0 && upto < eq.mvo.length){
+    const x = xScale(upto);
+    html += `<circle cx="${x}" cy="${yScale(eq.mvo[upto], yMin, yMax)}" r="5" fill="#2563EB" stroke="white" stroke-width="2"/>`;
+    html += `<circle cx="${x}" cy="${yScale(eq.oly[upto], yMin, yMax)}" r="5" fill="#7E22CE" stroke="white" stroke-width="2"/>`;
+    html += `<circle cx="${x}" cy="${yScale(eq.n1[upto], yMin, yMax)}" r="4" fill="#94A3B8" stroke="white" stroke-width="1.5"/>`;
+  }
+  g.innerHTML = html;
+}
+
+function drawEvents(upto){
+  const g = document.getElementById("chart-events");
+  let html = "";
+  for (const ev of EVENTS){
+    if (ev.monthIdx <= upto){
+      const x = xScale(ev.monthIdx);
+      html += `<line x1="${x}" x2="${x}" y1="${M.top}" y2="${M.top+PH}" stroke="#B91C1C" stroke-width="1" opacity="0.35" stroke-dasharray="2,2"/>`;
+      html += `<text x="${x}" y="${M.top - 6}" text-anchor="middle" font-size="8.5" fill="#B91C1C" font-weight="700">▼</text>`;
+    }
+  }
+  g.innerHTML = html;
+}
+
+function drawCursor(upto){
+  const g = document.getElementById("chart-cursor");
+  if (upto < 0 || upto >= eq.mvo.length){ g.innerHTML = ""; return; }
+  const x = xScale(upto);
+  g.innerHTML = `<line x1="${x}" x2="${x}" y1="${M.top}" y2="${M.top+PH}" stroke="#1A1F2E" stroke-width="0.5" opacity="0.4"/>`;
+}
+
+function drawChartLabels(upto){
+  const g = document.getElementById("chart-labels");
+  if (upto < 0 || upto >= eq.mvo.length){ g.innerHTML = ""; return; }
+  let html = "";
+  const xLbl = xScale(upto) + 8;
+  html += `<text x="${xLbl}" y="${yScale(eq.mvo[upto], yMin, yMax)+4}" font-size="10" fill="#2563EB" font-weight="700">${eq.mvo[upto].toFixed(2)}×</text>`;
+  html += `<text x="${xLbl}" y="${yScale(eq.oly[upto], yMin, yMax)+4}" font-size="10" fill="#7E22CE" font-weight="700">${eq.oly[upto].toFixed(2)}×</text>`;
+  html += `<text x="${xLbl}" y="${yScale(eq.n1[upto], yMin, yMax)+4}" font-size="10" fill="#94A3B8" font-weight="700">${eq.n1[upto].toFixed(2)}×</text>`;
+  g.innerHTML = html;
+}
+
+// ============================================================
+// STATS + WEIGHTS RENDERING
+// ============================================================
+function renderStats(upto){
+  document.getElementById("stat-mvo").textContent = eq.mvo[upto].toFixed(2) + "×";
+  document.getElementById("stat-oly").textContent = eq.oly[upto].toFixed(2) + "×";
+  document.getElementById("stat-n1").textContent  = eq.n1[upto].toFixed(2) + "×";
+
+  const sMvo = computeSharpe(returns.mvo.slice(0, upto+1));
+  const sOly = computeSharpe(returns.oly.slice(0, upto+1));
+  const sN1  = computeSharpe(returns.n1.slice(0, upto+1));
+  document.getElementById("stat-mvo-sub").textContent = `Sharpe: ${isNaN(sMvo)?'—':sMvo.toFixed(3)}`;
+  document.getElementById("stat-oly-sub").textContent = `Sharpe: ${isNaN(sOly)?'—':sOly.toFixed(3)}`;
+  document.getElementById("stat-n1-sub").textContent  = `Sharpe: ${isNaN(sN1)?'—':sN1.toFixed(3)}`;
+
+  const dSharpe = sOly - sMvo;
+  const dEl = document.getElementById("stat-delta");
+  dEl.textContent = isNaN(dSharpe) ? '—' : (dSharpe >= 0 ? '+' : '') + dSharpe.toFixed(3);
+  dEl.style.color = dSharpe > 0 ? "var(--green)" : (dSharpe < 0 ? "var(--red)" : "var(--muted)");
+
+  const {maxDD} = computeMaxDD(eq.mvo.slice(0, upto+2));
+  document.getElementById("stat-mdd").textContent = (maxDD*100).toFixed(1) + " %";
+
+  document.getElementById("stat-months").textContent = `${upto+1} / 180`;
+
+  // $1M portfolio tracker
+  const fmtUSD = v => "$" + Math.round(v).toLocaleString("en-US");
+  ["mvo","oly","n1"].forEach(k => {
+    const mult = eq[k][upto];
+    const val = mult * 1000000;
+    const chg = val - 1000000;
+    const pvEl = document.getElementById("pv-" + k);
+    const chgEl = document.getElementById("pv-" + k + "-chg");
+    if (pvEl) pvEl.textContent = fmtUSD(val);
+    if (chgEl){
+      chgEl.textContent = (chg >= 0 ? "+" : "") + fmtUSD(chg) + " vs start";
+      chgEl.className = "chg " + (chg >= 0 ? "pos" : "neg");
+    }
+  });
+
+}
+
+function renderSubPeriods(upto){
+  const grid = document.getElementById("subp-grid");
+  let html = "";
+  for (const sp of SUB_PERIODS){
+    let cls = "future";
+    if (upto >= sp.to) cls = "past";
+    else if (upto >= sp.from) cls = "active";
+
+    const from = sp.from, to = Math.min(sp.to, upto);
+    let sSharpe = "—", oSharpe = "—", delta = "—";
+    if (to >= from + 3){
+      const sM = computeSharpe(returns.mvo.slice(from, to+1));
+      const sO = computeSharpe(returns.oly.slice(from, to+1));
+      if (!isNaN(sM)) sSharpe = sM.toFixed(3);
+      if (!isNaN(sO)) oSharpe = sO.toFixed(3);
+      if (!isNaN(sM) && !isNaN(sO)) delta = (sO - sM >= 0 ? '+' : '') + (sO - sM).toFixed(3);
+    }
+
+    html += `<div class="subp ${cls}">
+      <div class="subp-name">${sp.name}</div>
+      <div class="subp-sharpe">MVO ${sSharpe}</div>
+      <div class="subp-sharpe" style="color:var(--purple);">OLY ${oSharpe}</div>
+      <div class="subp-delta">Δ ${delta}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function renderWeights(upto){
+  const w = simulateWeights(upto);
+  const {adj, capActive} = overlayAdjustments(upto, w);
+
+  let mHtml = "", oHtml = "";
+  for (const asset of ["SPY","AGG","DBC","TB3MS"]){
+    const wMvo = w[asset];
+    const wOly = Math.max(0, w[asset] + adj[asset]);
+    mHtml += `<div class="weight-row">
+      <div class="wt-name ${asset.toLowerCase()}">${asset}</div>
+      <div class="wt-bar"><div class="wt-fill ${asset.toLowerCase()}" style="width:${wMvo*100*1.7}%;"></div></div>
+      <div class="wt-val">${(wMvo*100).toFixed(1)}%</div>
+    </div>`;
+    oHtml += `<div class="weight-row">
+      <div class="wt-name ${asset.toLowerCase()}">${asset}</div>
+      <div class="wt-bar"><div class="wt-fill ${asset.toLowerCase()}" style="width:${wOly*100*1.7}%;"></div></div>
+      <div class="wt-val">${(wOly*100).toFixed(1)}%</div>
+    </div>`;
+  }
+  document.getElementById("wt-mvo").innerHTML = mHtml;
+  document.getElementById("wt-oly").innerHTML = oHtml;
+  document.getElementById("cap-callout").style.display = capActive ? "block" : "none";
+}
+
+function renderEvents(upto){
+  const el = document.getElementById("events-list");
+  let html = "";
+  for (const ev of EVENTS){
+    const passed = ev.monthIdx <= upto;
+    const style = passed
+      ? "color:var(--red);font-weight:700;"
+      : "color:var(--muted);opacity:0.5;";
+    html += `<div style="${style}">${passed ? '● ' : '○ '} <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;">${monthLabel(ev.monthIdx)}</span> — ${ev.label}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function pushPlaybackLog(upto){
+  if (upto < 0) return;
+  const el = document.getElementById("playback-log");
+  const m = monthLabel(upto);
+  const rMvo = returns.mvo[upto];
+  const rOly = returns.oly[upto];
+  const line = `<span style="color:var(--amber);">[${m}]</span> mvo:${(rMvo*100>=0?'+':'')}${(rMvo*100).toFixed(2)}% · oly:${(rOly*100>=0?'+':'')}${(rOly*100).toFixed(2)}%`;
+  el.innerHTML = line + "<br>" + el.innerHTML;
+  const lines = el.innerHTML.split("<br>");
+  if (lines.length > 5) el.innerHTML = lines.slice(0,5).join("<br>");
+}
+
+// ============================================================
+// CONTROLS + ANIMATION
+// ============================================================
+let currentT = 0;
+let playing = false;
+let speed = 1; // multiplier for frame rate
+
+function render(t){
+  drawAxes();
+  drawLines(t);
+  drawEvents(t);
+  drawCursor(t);
+  drawChartLabels(t);
+  renderStats(t);
+  renderSubPeriods(t);
+  renderWeights(t);
+  renderEvents(t);
+  document.getElementById("time-slider").value = t;
+  document.getElementById("time-display").textContent = monthLabel(t);
+}
+
+function step(direction){
+  currentT = Math.max(0, Math.min(N_MONTHS - 1, currentT + direction));
+  render(currentT);
+  if (direction > 0) pushPlaybackLog(currentT);
+}
+
+let animationTimer = null;
+function play(){
+  if (playing) return;
+  playing = true;
+  document.getElementById("btn-play").textContent = "⏸ Pause";
+  const tick = () => {
+    if (!playing) return;
+    if (currentT >= N_MONTHS - 1){ pause(); return; }
+    step(+1);
+    animationTimer = setTimeout(tick, 250 / speed);
+  };
+  tick();
+}
+function pause(){
+  playing = false;
+  document.getElementById("btn-play").textContent = "▶ Play";
+  clearTimeout(animationTimer);
+}
+function togglePlay(){ playing ? pause() : play(); }
+
+document.getElementById("btn-play").onclick = togglePlay;
+document.getElementById("btn-back").onclick = () => { pause(); step(-1); };
+document.getElementById("btn-fwd").onclick = () => { pause(); step(+1); };
+document.getElementById("btn-reset").onclick = () => { pause(); currentT = 0; render(0); document.getElementById("playback-log").innerHTML = ""; };
+document.getElementById("time-slider").oninput = (e) => {
+  pause();
+  currentT = parseInt(e.target.value);
+  render(currentT);
+};
+document.querySelectorAll(".speed-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".speed-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    speed = parseFloat(b.dataset.speed);
+  };
+});
+
+// Initial render
+render(0);
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  function tryClick(attempt) {
+    const btn = document.querySelector('#btn-play');
+    if (btn) {
+      const label = (btn.textContent || '').toLowerCase();
+      if (!label.includes('pause') && !label.includes('pausa')) btn.click();
+      return;
+    }
+    if (attempt < 20) setTimeout(() => tryClick(attempt + 1), 200);
+  }
+  if (document.readyState === 'complete') setTimeout(() => tryClick(0), 400);
+  else window.addEventListener('load', () => setTimeout(() => tryClick(0), 400));
+})();
+</script>
+
+</body>
+</html>

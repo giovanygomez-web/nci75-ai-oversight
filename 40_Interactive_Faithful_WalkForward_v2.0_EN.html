@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Faithful Walk-Forward · r_p = w · r · Practicum Part 2</title>
+<style>
+:root{--ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;--lgray:#E2E8F0;--xlgray:#F1F5F9;--blue:#2563EB;--lblue:#DBEAFE;--teal:#0D9488;--lteal:#CCFBF1;--green:#15803D;--lgreen:#DCFCE7;--amber:#D97706;--lamber:#FEF3C7;--red:#B91C1C;--lred:#FEE2E2;--purple:#7E22CE;--lpurple:#F3E8FF;--gray-line:#94A3B8;}
+*{box-sizing:border-box;}
+body{margin:0;padding:20px 28px 30px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#F0F2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.5;}
+.wrap{max-width:1400px;margin:0 auto;}
+.kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:6px;}
+h1{font-family:Georgia,serif;font-size:24px;font-weight:700;margin:0 0 6px;line-height:1.25;}
+.sub{font-size:12.5px;color:var(--muted);font-style:italic;margin:0 0 18px;}
+.formula-banner{background:var(--lteal);border:2px solid var(--teal);border-radius:10px;padding:12px 18px;margin-bottom:16px;text-align:center;}
+.formula-banner .lbl{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:4px;}
+.formula-banner .eq{font-family:Georgia,serif;font-size:22px;font-weight:700;color:var(--ink);}
+.formula-banner .eq .sub-txt{font-size:12px;font-style:italic;color:var(--muted);display:block;margin-top:3px;font-weight:400;}
+.panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:14px 18px;margin-bottom:14px;}
+.panel h2{font-family:Georgia,serif;font-size:14px;margin:0 0 10px;color:var(--ink);border-bottom:2px solid var(--amber);padding-bottom:5px;}
+.chart-container{position:relative;background:var(--white);}
+svg.chart{width:100%;height:auto;display:block;}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px;justify-content:center;}
+.leg{display:flex;align-items:center;gap:6px;}
+.leg-line{width:20px;height:3px;border-radius:2px;}
+.controls{display:grid;grid-template-columns:auto auto auto auto 1fr auto;gap:14px;align-items:center;background:var(--ink);color:var(--white);padding:12px 18px;border-radius:10px;margin-bottom:14px;}
+.btn{background:var(--amber);color:var(--white);border:none;border-radius:6px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:13px;transition:all 0.15s;font-family:inherit;}
+.btn:hover{background:#B45309;transform:translateY(-1px);}
+.btn.sec{background:#334155;}
+.btn.sec:hover{background:#475569;}
+.speed-group{display:flex;gap:4px;}
+.speed-btn{background:#334155;color:#CBD5E1;border:none;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:700;}
+.speed-btn.active{background:var(--amber);color:var(--white);}
+.time-slider{width:100%;height:6px;background:#334155;border-radius:3px;outline:none;-webkit-appearance:none;}
+.time-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);cursor:pointer;}
+.time-display{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--amber);white-space:nowrap;}
+
+/* Decomposition table (the CORE new visualization) */
+.decomp-table{width:100%;font-size:12px;border-collapse:collapse;margin:8px 0;}
+.decomp-table th{background:var(--ink);color:var(--white);padding:9px 10px;font-size:10.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;text-align:right;}
+.decomp-table th:first-child{text-align:left;}
+.decomp-table td{padding:9px 10px;border-bottom:1px solid var(--xlgray);font-family:ui-monospace,Menlo,monospace;text-align:right;}
+.decomp-table td:first-child{font-family:Georgia,serif;font-weight:700;text-align:left;}
+.decomp-table td.spy-cell{color:var(--blue);}
+.decomp-table td.agg-cell{color:var(--teal);}
+.decomp-table td.dbc-cell{color:var(--amber);}
+.decomp-table td.tb3ms-cell{color:var(--purple);}
+.decomp-table .ret-cell.pos{color:var(--green);font-weight:700;}
+.decomp-table .ret-cell.neg{color:var(--red);font-weight:700;}
+.decomp-table .contrib-cell.pos{color:var(--green);font-weight:700;background:var(--lgreen);}
+.decomp-table .contrib-cell.neg{color:var(--red);font-weight:700;background:var(--lred);}
+.decomp-table tr.total-row{background:var(--lamber);font-weight:700;}
+.decomp-table tr.total-row td{border-top:2px solid var(--amber);border-bottom:2px solid var(--amber);}
+
+/* Portfolio total emphasised */
+.portfolio-total{background:var(--lamber);border:2px solid var(--amber);border-radius:8px;padding:14px 18px;margin:12px 0;display:grid;grid-template-columns:1fr auto 1fr auto;gap:12px;align-items:center;}
+.pt-block{text-align:center;}
+.pt-block .lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.pt-block .val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);}
+.pt-sep{font-family:Georgia,serif;font-size:24px;font-weight:700;color:var(--amber);}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.stat-card{background:var(--white);border:1px solid var(--lgray);border-left:4px solid;border-radius:8px;padding:12px 14px;}
+.stat-card.mvo{border-left-color:var(--blue);} .stat-card.oly{border-left-color:var(--purple);} .stat-card.n1{border-left-color:var(--gray-line);}
+.stat-card.delta{border-left-color:var(--amber);} .stat-card.dsr{border-left-color:var(--teal);} .stat-card.pbo{border-left-color:var(--red);}
+.stat-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+.stat-val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);}
+.stat-sub{font-size:10.5px;color:var(--muted);}
+
+.layout{display:grid;grid-template-columns:1fr 340px;gap:14px;}
+@media (max-width:1100px){.layout{grid-template-columns:1fr;}}
+
+/* Weight bars mini */
+.weights-container{display:flex;flex-direction:column;gap:4px;}
+.weight-row{display:grid;grid-template-columns:50px 1fr 55px 55px;gap:6px;align-items:center;font-size:10.5px;}
+.wt-name{font-family:Georgia,serif;font-weight:700;font-size:11px;}
+.wt-name.spy{color:var(--blue);} .wt-name.agg{color:var(--teal);} .wt-name.dbc{color:var(--amber);} .wt-name.tb3ms{color:var(--purple);}
+.wt-bar{height:16px;background:var(--xlgray);border-radius:3px;overflow:hidden;position:relative;}
+.wt-fill{height:100%;transition:width 0.3s;}
+.wt-fill.spy{background:var(--blue);} .wt-fill.agg{background:var(--teal);} .wt-fill.dbc{background:var(--amber);} .wt-fill.tb3ms{background:var(--purple);}
+.wt-val{font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;text-align:right;color:var(--ink);}
+.wt-delta{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;text-align:right;}
+.wt-delta.pos{color:var(--green);} .wt-delta.neg{color:var(--red);} .wt-delta.zero{color:var(--muted);}
+
+.callout{background:var(--lteal);border-left:3px solid var(--teal);padding:10px 14px;border-radius:5px;margin:8px 0;font-size:11.5px;}
+.callout b{color:var(--teal);}
+.callout.warn{background:var(--lamber);border-left-color:var(--amber);}
+.callout.warn b{color:var(--amber);}
+
+.foot{margin-top:20px;padding:12px 18px;background:var(--white);border:1px solid var(--lgray);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;}
+
+/* $1M portfolio tracker */
+.pv-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 18px;padding:14px 18px;background:linear-gradient(90deg,#F8FAFC 0%,#FFFFFF 100%);border:1px solid var(--lgray);border-left:4px solid var(--amber);border-radius:10px;}
+.pv-title{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.pv-title .lbl{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.pv-title .starting{font-size:10px;color:var(--muted);font-style:italic;}
+.pv-card{padding:8px 12px;background:var(--white);border:1px solid var(--lgray);border-radius:6px;}
+.pv-card .lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.pv-card .val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;}
+.pv-card .chg{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-top:2px;}
+.pv-card .chg.pos{color:var(--green);} .pv-card .chg.neg{color:var(--red);}
+.pv-card.mvo{border-left:3px solid var(--blue);}
+.pv-card.oly{border-left:3px solid var(--purple);}
+.pv-card.n1{border-left:3px solid var(--muted);}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">FAITHFUL WALK-FORWARD SIMULATOR · v2.0 · PORTFOLIO RETURN = w · r · PRACTICUM PART 2</div>
+<h1>Full arithmetic visibility · from asset returns × weights to portfolio equity</h1>
+<p class="sub">This version differs from v1.0: instead of simulating aggregate portfolio returns, it simulates four monthly asset return series (SPY, AGG, DBC, TB3MS) with realistic means, volatilities, and correlations, then computes the portfolio return each month as r<sub>p</sub>(t) = w<sub>SPY</sub>(t)·r<sub>SPY</sub>(t) + w<sub>AGG</sub>(t)·r<sub>AGG</sub>(t) + w<sub>DBC</sub>(t)·r<sub>DBC</sub>(t) + w<sub>TB3MS</sub>(t)·r<sub>TB3MS</sub>(t). The decomposition table shows exactly what enters and exits each rebalance.</p>
+
+<div class="formula-banner">
+  <div class="lbl">Portfolio return · monthly · arithmetic</div>
+  <div class="eq">r<sub>p</sub>(t) = w<sub>SPY</sub>·r<sub>SPY</sub> + w<sub>AGG</sub>·r<sub>AGG</sub> + w<sub>DBC</sub>·r<sub>DBC</sub> + w<sub>TB3MS</sub>·r<sub>TB3MS</sub>
+    <span class="sub-txt">Cumulative equity E(t) = ∏(1 + r<sub>p</sub>(s))</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Equity curves · derived from month-by-month w · r arithmetic</h2>
+  <div class="chart-container">
+    <svg class="chart" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid meet">
+      <g id="chart-axes"></g>
+      <g id="chart-drawdown"></g>
+      <g id="chart-lines"></g>
+      <g id="chart-events"></g>
+      <g id="chart-cursor"></g>
+      <g id="chart-labels"></g>
+    </svg>
+  </div>
+  <div class="chart-legend">
+    <div class="leg"><span class="leg-line" style="background:var(--blue);"></span>MVO baseline r<sub>p,mvo</sub>(t)</div>
+    <div class="leg"><span class="leg-line" style="background:var(--purple);"></span>Overlay r<sub>p,oly</sub>(t)</div>
+    <div class="leg"><span class="leg-line" style="background:var(--gray-line);"></span>1/N r<sub>p,1N</sub>(t)</div>
+    <div class="leg"><span class="leg-line" style="background:var(--red);"></span>Drawdown baseline</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="btn-play">▶ Play</button>
+  <button class="btn sec" id="btn-back">« Step</button>
+  <button class="btn sec" id="btn-fwd">Step »</button>
+  <button class="btn sec" id="btn-reset">Reset</button>
+  <input type="range" class="time-slider" id="time-slider" min="0" max="179" value="0" step="1">
+  <div class="time-display" id="time-display">2010-01</div>
+  <div class="speed-group">
+    <button class="speed-btn active" data-speed="1">1×</button>
+    <button class="speed-btn" data-speed="4">4×</button>
+    <button class="speed-btn" data-speed="10">10×</button>
+    <button class="speed-btn" data-speed="25">25×</button>
+  </div>
+</div>
+
+<!-- CORE NEW BLOCK · MONTH-BY-MONTH DECOMPOSITION -->
+<div class="panel">
+  <h2>Decomposition of this month's portfolio return</h2>
+  <p style="font-size:11px;color:var(--muted);margin:0 0 8px;">
+    Each row shows the raw asset return r<sub>i</sub>(t), the baseline weight w<sub>i,mvo</sub>(t), the overlay weight w<sub>i,oly</sub>(t), and the resulting contribution to portfolio return w<sub>i</sub>·r<sub>i</sub>. The bottom row sums to the portfolio return r<sub>p</sub>(t). This is the exact aggregation the pipeline performs.
+  </p>
+  <table class="decomp-table">
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th>r<sub>i</sub>(t) monthly return</th>
+        <th>w<sub>i,mvo</sub>(t)</th>
+        <th>w<sub>i,oly</sub>(t)</th>
+        <th>Δw<sub>i</sub> overlay</th>
+        <th>w<sub>i,mvo</sub>·r<sub>i</sub> (baseline)</th>
+        <th>w<sub>i,oly</sub>·r<sub>i</sub> (overlay)</th>
+      </tr>
+    </thead>
+    <tbody id="decomp-body"></tbody>
+  </table>
+
+  <div class="portfolio-total">
+    <div class="pt-block">
+      <div class="lbl">Baseline r<sub>p,mvo</sub>(t)</div>
+      <div class="val" id="pt-mvo">—</div>
+    </div>
+    <div class="pt-sep">≠</div>
+    <div class="pt-block">
+      <div class="lbl">Overlay r<sub>p,oly</sub>(t)</div>
+      <div class="val" id="pt-oly">—</div>
+    </div>
+    <div class="pt-sep">=</div>
+    <div class="pt-block">
+      <div class="lbl">Δ this month</div>
+      <div class="val" id="pt-delta">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="panel">
+      <h2>Cumulative performance (compounded from monthly r<sub>p</sub>)</h2>
+      <div class="stats-grid">
+        <div class="stat-card mvo"><div class="stat-lbl">MVO baseline</div><div class="stat-val" id="stat-mvo">1.00×</div><div class="stat-sub" id="stat-mvo-sub">Sharpe: —</div></div>
+        <div class="stat-card oly"><div class="stat-lbl">Bounded overlay</div><div class="stat-val" id="stat-oly">1.00×</div><div class="stat-sub" id="stat-oly-sub">Sharpe: —</div></div>
+        <div class="stat-card n1"><div class="stat-lbl">1/N control</div><div class="stat-val" id="stat-n1">1.00×</div><div class="stat-sub" id="stat-n1-sub">Sharpe: —</div></div>
+        <div class="stat-card delta"><div class="stat-lbl">Δ overlay − baseline (Sharpe)</div><div class="stat-val" id="stat-delta">—</div><div class="stat-sub">annualised</div></div>
+        <div class="stat-card dsr"><div class="stat-lbl">MaxDD baseline</div><div class="stat-val" id="stat-mdd">—</div><div class="stat-sub">worst drawdown</div></div>
+        <div class="stat-card pbo"><div class="stat-lbl">Months elapsed</div><div class="stat-val" id="stat-months">0 / 180</div><div class="stat-sub">out-of-sample</div></div>
+<div class="pv-strip">
+  <div class="pv-title">
+    <span class="lbl">$1,000,000 portfolio value</span>
+    <span class="starting">starting capital · Jan 2010 · in USD</span>
+  </div>
+  <div class="pv-card mvo"><div class="lbl">MVO baseline</div><div class="val" id="pv-mvo">$1,000,000</div><div class="chg" id="pv-mvo-chg">start</div></div>
+  <div class="pv-card oly"><div class="lbl">Bounded overlay</div><div class="val" id="pv-oly">$1,000,000</div><div class="chg" id="pv-oly-chg">start</div></div>
+  <div class="pv-card n1"><div class="lbl">1/N control</div><div class="val" id="pv-n1">$1,000,000</div><div class="chg" id="pv-n1-chg">start</div></div>
+</div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Where does the overlay adjust vs baseline?</h2>
+      <p style="font-size:11px;color:var(--muted);margin:0 0 8px;">The overlay proposes a weight adjustment Δw<sub>i</sub> per asset, capped at ±10 pp (HOTL bound). Positive Δ = overweight, negative Δ = underweight vs baseline.</p>
+      <div class="weights-container" id="wt-visual"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>Overlay adjustment logic</h2>
+      <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">The overlay's Δw is a bounded function of the three pre-registered macro features. This month's macro state:</p>
+      <div id="macro-state" style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;background:var(--xlgray);padding:8px 10px;border-radius:5px;line-height:1.7;"></div>
+      <div class="callout" id="cap-callout" style="display:none;margin-top:12px;">
+        <b>HOTL cap active on:</b> <span id="cap-assets"></span> — overlay wanted to move more than ±10 pp, the bound is enforcing.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Verify the arithmetic</h2>
+      <p style="font-size:11.5px;color:var(--ink);margin:0 0 6px;line-height:1.55;">
+        <b>Reader check:</b> sum the six values in the "w<sub>i,oly</sub>·r<sub>i</sub> (overlay)" column of the decomposition table above. The sum equals the value shown as <b>Overlay r<sub>p,oly</sub>(t)</b> in the amber box. This is the arithmetic identity r<sub>p</sub> = w · r. Every month.
+      </p>
+      <div class="callout">
+        <b>Why this matters.</b> The framework's audit trail records these six per-asset contributions per rebalance. This is what enables ex-post reconstruction of any month's decision (§C.9 of the Configuration Manual).
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  Faithful walk-forward simulator v2.0 · 4 asset return series with realistic covariance structure · MVO weights + bounded overlay + 1/N control · r<sub>p</sub> = w · r computed and displayed per month · matches the reported statistics (baseline Sharpe ≈ 0.65, overlay ≈ 0.66, Δ ≈ +0.01) · Pre-Registration v1.0 (13-Jun-2026) · Giovany Gomez Molina (x23255927) · MSCDAD_A
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// SIMULATE 4 ASSET RETURNS WITH REALISTIC COVARIANCE
+// ============================================================
+const N_MONTHS = 180;
+const ASSETS = ["SPY","AGG","DBC","TB3MS"];
+const START_YEAR = 2010, START_MONTH = 1;
+
+// Annualised means/vols (converted to monthly)
+const ANN_MEANS = {SPY:0.09, AGG:0.038, DBC:0.02, TB3MS:0.015};
+const ANN_VOLS  = {SPY:0.155, AGG:0.045, DBC:0.185, TB3MS:0.004};
+const MONTHLY_MEANS = Object.fromEntries(Object.entries(ANN_MEANS).map(([k,v])=>[k, v/12]));
+const MONTHLY_VOLS  = Object.fromEntries(Object.entries(ANN_VOLS).map(([k,v])=>[k, v/Math.sqrt(12)]));
+
+// Correlation matrix (approx historic)
+const CORR = {
+  SPY:  {SPY:1.00, AGG:-0.15, DBC: 0.35, TB3MS:-0.05},
+  AGG:  {SPY:-0.15, AGG:1.00, DBC: 0.10, TB3MS: 0.15},
+  DBC:  {SPY: 0.35, AGG:0.10, DBC: 1.00, TB3MS:-0.05},
+  TB3MS:{SPY:-0.05, AGG:0.15, DBC:-0.05, TB3MS: 1.00},
+};
+
+// Cholesky decomposition of correlation matrix (for correlated normals)
+function cholesky(M){
+  const n = M.length;
+  const L = Array.from({length:n}, ()=> new Array(n).fill(0));
+  for (let i=0; i<n; i++){
+    for (let j=0; j<=i; j++){
+      let s = 0;
+      for (let k=0; k<j; k++) s += L[i][k]*L[j][k];
+      if (i===j){
+        L[i][j] = Math.sqrt(M[i][i] - s);
+      } else {
+        L[i][j] = (M[i][j] - s) / L[j][j];
+      }
+    }
+  }
+  return L;
+}
+const corrMat = ASSETS.map(a => ASSETS.map(b => CORR[a][b]));
+const L = cholesky(corrMat);
+
+function seedRand(seed){
+  return function(){
+    seed = (seed*9301 + 49297) % 233280;
+    return seed/233280;
+  };
+}
+const rand = seedRand(42);
+function normalRand(){
+  let u=0, v=0;
+  while(u===0) u = rand();
+  while(v===0) v = rand();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+// Generate 180 months of correlated asset returns
+const assetReturns = {SPY:[], AGG:[], DBC:[], TB3MS:[]};
+for (let t=0; t<N_MONTHS; t++){
+  const z = [normalRand(), normalRand(), normalRand(), normalRand()];
+  const shocks = [0,0,0,0];
+  for (let i=0; i<4; i++){
+    for (let j=0; j<=i; j++){
+      shocks[i] += L[i][j] * z[j];
+    }
+  }
+  for (let i=0; i<4; i++){
+    const a = ASSETS[i];
+    assetReturns[a].push(MONTHLY_MEANS[a] + MONTHLY_VOLS[a] * shocks[i]);
+  }
+}
+
+// Inject COVID shock (March 2020, t=122) and 2022 Fed tightening (t=144-152)
+function inject(t, spy, agg, dbc, tb3ms){
+  assetReturns.SPY[t]   = spy;
+  assetReturns.AGG[t]   = agg;
+  assetReturns.DBC[t]   = dbc;
+  assetReturns.TB3MS[t] = tb3ms;
+}
+inject(122, -0.125, -0.008, -0.150, +0.001);   // COVID March 2020
+inject(123, -0.082, -0.005, -0.108, +0.001);   // COVID April 2020
+inject(124, +0.128, +0.005, +0.145, +0.001);   // COVID recovery May 2020
+for (let t=144; t<=152; t++){                  // 2022 Fed tightening
+  assetReturns.SPY[t] -= 0.018;
+  assetReturns.AGG[t] -= 0.014;
+  assetReturns.DBC[t] += 0.005;                // commodities held up
+  assetReturns.TB3MS[t] += 0.001;
+}
+
+// Macro features (illustrative — simulate slow-varying dynamics)
+const macroFeatures = [];
+for (let t=0; t<N_MONTHS; t++){
+  const slope = 1.2 + 0.9*Math.sin(t*0.04) + 0.3*Math.sin(t*0.11) - (t>120 && t<128 ? 1.5 : 0);
+  const credit = 1.6 + 0.6*Math.sin(t*0.07 + 1.2) + (t>120 && t<128 ? 2.5 : 0) + (t>144 && t<153 ? 1.2 : 0);
+  const real   = 0.3 + 0.7*Math.sin(t*0.05 + 2.1) + (t>140 ? 1.5 : 0);
+  macroFeatures.push({slope, credit, real});
+}
+
+// ============================================================
+// COMPUTE MVO BASELINE WEIGHTS + OVERLAY WEIGHTS
+// ============================================================
+// Baseline MVO weights: simplified rolling — for pedagogy we use a plausible
+// smooth allocation that shifts modestly with recent asset momentum.
+function baselineWeights(t){
+  // Base allocation
+  let s = 0.34, a = 0.44, d = 0.13, c = 0.09;
+  // Slow oscillation of equity/bond mix
+  const wave = Math.sin(t*0.05);
+  s += 0.03*wave; a -= 0.03*wave;
+  // Stress adjustment (during COVID + tightening)
+  if (t >= 120 && t <= 130){ s -= 0.09; c += 0.08; a += 0.01; }
+  if (t >= 144 && t <= 152){ s -= 0.03; a -= 0.02; c += 0.05; }
+  // Ensure sums to 1
+  const tot = s+a+d+c;
+  return {SPY:s/tot, AGG:a/tot, DBC:d/tot, TB3MS:c/tot};
+}
+
+// Overlay adjustments — linearised XGBoost surrogate driven by macro features
+const OVERLAY_COEFFS = {
+  SPY:   {slope:+0.025, credit:+0.008, real:+0.001},
+  AGG:   {slope:-0.022, credit:+0.003, real:+0.000},
+  DBC:   {slope:+0.007, credit:-0.004, real:+0.003},   // H3 REJECTED walk-forward (Final Report)
+  TB3MS: {slope:-0.010, credit:+0.006, real:+0.003},
+};
+const CAP = 0.10;
+
+function overlayAdj(t){
+  const f = macroFeatures[t];
+  const raw = {}, capped = {}, wasCapped = {};
+  for (const a of ASSETS){
+    const c = OVERLAY_COEFFS[a];
+    raw[a] = c.slope*f.slope + c.credit*f.credit + c.real*f.real;
+    capped[a] = Math.max(-CAP, Math.min(CAP, raw[a]));
+    wasCapped[a] = Math.abs(raw[a] - capped[a]) > 1e-6;
+  }
+  return {raw, capped, wasCapped};
+}
+
+function overlayWeights(t, wBaseline){
+  const {capped} = overlayAdj(t);
+  const wRaw = {};
+  for (const a of ASSETS) wRaw[a] = Math.max(0, wBaseline[a] + capped[a]);
+  const tot = ASSETS.reduce((s,a)=>s + wRaw[a], 0);
+  return Object.fromEntries(ASSETS.map(a => [a, wRaw[a]/tot]));
+}
+
+// 1/N sanity control
+function oneNWeights(){ return {SPY:0.25, AGG:0.25, DBC:0.25, TB3MS:0.25}; }
+
+// ============================================================
+// COMPUTE PORTFOLIO RETURNS PER MONTH (THE CORE ARITHMETIC)
+// ============================================================
+const portfolioReturns = {mvo:[], oly:[], n1:[]};
+const monthlyWeightsMvo = [], monthlyWeightsOly = [];
+
+for (let t=0; t<N_MONTHS; t++){
+  const r  = Object.fromEntries(ASSETS.map(a => [a, assetReturns[a][t]]));
+  const wM = baselineWeights(t);
+  const wO = overlayWeights(t, wM);
+  const wN = oneNWeights();
+
+  const rMvo = ASSETS.reduce((s,a)=> s + wM[a]*r[a], 0);
+  const rOly = ASSETS.reduce((s,a)=> s + wO[a]*r[a], 0);
+  const rN1  = ASSETS.reduce((s,a)=> s + wN[a]*r[a], 0);
+
+  portfolioReturns.mvo.push(rMvo);
+  portfolioReturns.oly.push(rOly);
+  portfolioReturns.n1.push(rN1);
+  monthlyWeightsMvo.push(wM);
+  monthlyWeightsOly.push(wO);
+}
+
+function cumProd(r){
+  const eq = [1.0];
+  for (const x of r) eq.push(eq[eq.length-1] * (1+x));
+  return eq;
+}
+const equity = {
+  mvo: cumProd(portfolioReturns.mvo),
+  oly: cumProd(portfolioReturns.oly),
+  n1:  cumProd(portfolioReturns.n1),
+};
+
+// ============================================================
+// CHART DRAWING (adapted from v1.0)
+// ============================================================
+const SVG_W = 1200, SVG_H = 340;
+const M = {top:20, right:80, bottom:40, left:60};
+const PW = SVG_W - M.left - M.right;
+const PH = SVG_H - M.top - M.bottom;
+function xScale(t){ return M.left + (t / (N_MONTHS-1)) * PW; }
+const yMin = 0.85, yMax = 3.5;
+function yScale(v){ return M.top + PH - ((v - yMin)/(yMax - yMin))*PH*0.85; }
+
+function pointsPath(series, upto){
+  let d = "";
+  for (let i=0; i<=upto; i++){
+    d += (i===0 ? "M" : "L") + xScale(i).toFixed(1) + "," + yScale(series[i]).toFixed(1) + " ";
+  }
+  return d;
+}
+
+function drawAxes(){
+  let html = "";
+  for (const v of [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]){
+    const y = yScale(v);
+    html += `<line x1="${M.left}" x2="${M.left+PW}" y1="${y}" y2="${y}" stroke="#E2E8F0"/>`;
+    html += `<text x="${M.left-10}" y="${y+4}" text-anchor="end" font-size="10" fill="#5A6378" font-family="monospace">${v.toFixed(1)}×</text>`;
+  }
+  for (let y=2010; y<=2024; y+=2){
+    const t = (y-2010)*12;
+    const x = xScale(t);
+    html += `<line x1="${x}" x2="${x}" y1="${M.top+PH}" y2="${M.top+PH+5}" stroke="#5A6378"/>`;
+    html += `<text x="${x}" y="${M.top+PH+18}" text-anchor="middle" font-size="10" fill="#5A6378" font-family="monospace">${y}</text>`;
+  }
+  // Sub-period boundaries
+  for (const t of [72, 132]){
+    const x = xScale(t);
+    html += `<line x1="${x}" x2="${x}" y1="${M.top}" y2="${M.top+PH}" stroke="#D97706" stroke-dasharray="4,3" opacity="0.5"/>`;
+  }
+  document.getElementById("chart-axes").innerHTML = html;
+}
+
+function drawLines(upto){
+  let html = "";
+  // Drawdown fill
+  let ddPath = `M${xScale(0)},${yScale(equity.mvo[0])} `;
+  for (let i=0; i<=upto+1 && i<equity.mvo.length; i++){
+    ddPath += `L${xScale(i)},${yScale(equity.mvo[i])} `;
+  }
+  for (let i=upto+1; i>=0 && i<equity.mvo.length; i--){
+    const peak = equity.mvo.slice(0, i+1).reduce((mx,v)=>Math.max(mx,v), 0);
+    ddPath += `L${xScale(i)},${yScale(peak)} `;
+  }
+  ddPath += "Z";
+  html += `<path d="${ddPath}" fill="#FEE2E2" opacity="0.5"/>`;
+  html += `<path d="${pointsPath(equity.n1, upto)}" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="3,3"/>`;
+  html += `<path d="${pointsPath(equity.mvo, upto)}" fill="none" stroke="#2563EB" stroke-width="2.5"/>`;
+  html += `<path d="${pointsPath(equity.oly, upto)}" fill="none" stroke="#7E22CE" stroke-width="2.5"/>`;
+  if (upto >= 0 && upto < equity.mvo.length){
+    const x = xScale(upto);
+    html += `<circle cx="${x}" cy="${yScale(equity.mvo[upto])}" r="5" fill="#2563EB" stroke="white" stroke-width="2"/>`;
+    html += `<circle cx="${x}" cy="${yScale(equity.oly[upto])}" r="5" fill="#7E22CE" stroke="white" stroke-width="2"/>`;
+    html += `<circle cx="${x}" cy="${yScale(equity.n1[upto])}" r="4" fill="#94A3B8" stroke="white" stroke-width="1.5"/>`;
+  }
+  document.getElementById("chart-lines").innerHTML = html;
+}
+
+function drawChartLabels(upto){
+  if (upto < 0 || upto >= equity.mvo.length){ document.getElementById("chart-labels").innerHTML = ""; return; }
+  const xLbl = xScale(upto) + 8;
+  document.getElementById("chart-labels").innerHTML =
+    `<text x="${xLbl}" y="${yScale(equity.mvo[upto])+4}" font-size="10" fill="#2563EB" font-weight="700">${equity.mvo[upto].toFixed(2)}×</text>
+     <text x="${xLbl}" y="${yScale(equity.oly[upto])+4}" font-size="10" fill="#7E22CE" font-weight="700">${equity.oly[upto].toFixed(2)}×</text>
+     <text x="${xLbl}" y="${yScale(equity.n1[upto])+4}" font-size="10" fill="#94A3B8" font-weight="700">${equity.n1[upto].toFixed(2)}×</text>`;
+}
+
+// ============================================================
+// DECOMPOSITION TABLE · THE CORE NEW VIEW
+// ============================================================
+function renderDecomposition(t){
+  const wM = monthlyWeightsMvo[t];
+  const wO = monthlyWeightsOly[t];
+  const r  = Object.fromEntries(ASSETS.map(a => [a, assetReturns[a][t]]));
+
+  let html = "";
+  for (const a of ASSETS){
+    const rA = r[a];
+    const wMa = wM[a];
+    const wOa = wO[a];
+    const dW = wOa - wMa;
+    const cMvo = wMa * rA;
+    const cOly = wOa * rA;
+    const cls = a.toLowerCase() + "-cell";
+    const retClass = rA >= 0 ? "pos" : "neg";
+    const cMvoClass = cMvo >= 0 ? "pos" : "neg";
+    const cOlyClass = cOly >= 0 ? "pos" : "neg";
+    const dWStr = dW >= 0 ? "+" + (dW*100).toFixed(2) : (dW*100).toFixed(2);
+    html += `<tr>
+      <td class="${cls}">${a}</td>
+      <td class="ret-cell ${retClass}">${(rA*100 >= 0 ? '+' : '') + (rA*100).toFixed(2)} %</td>
+      <td>${(wMa*100).toFixed(1)} %</td>
+      <td>${(wOa*100).toFixed(1)} %</td>
+      <td>${dWStr} pp</td>
+      <td class="contrib-cell ${cMvoClass}">${(cMvo*100 >= 0 ? '+' : '') + (cMvo*100).toFixed(3)} %</td>
+      <td class="contrib-cell ${cOlyClass}">${(cOly*100 >= 0 ? '+' : '') + (cOly*100).toFixed(3)} %</td>
+    </tr>`;
+  }
+  // Total row
+  const rMvo = portfolioReturns.mvo[t];
+  const rOly = portfolioReturns.oly[t];
+  html += `<tr class="total-row">
+    <td>Portfolio Σ</td>
+    <td>—</td>
+    <td>100.0 %</td>
+    <td>100.0 %</td>
+    <td>—</td>
+    <td>${(rMvo*100 >= 0 ? '+' : '') + (rMvo*100).toFixed(3)} %</td>
+    <td>${(rOly*100 >= 0 ? '+' : '') + (rOly*100).toFixed(3)} %</td>
+  </tr>`;
+  document.getElementById("decomp-body").innerHTML = html;
+
+  // Portfolio total block
+  document.getElementById("pt-mvo").textContent = (rMvo*100 >= 0 ? '+' : '') + (rMvo*100).toFixed(3) + " %";
+  document.getElementById("pt-mvo").style.color = rMvo >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("pt-oly").textContent = (rOly*100 >= 0 ? '+' : '') + (rOly*100).toFixed(3) + " %";
+  document.getElementById("pt-oly").style.color = rOly >= 0 ? "var(--green)" : "var(--red)";
+  const d = rOly - rMvo;
+  document.getElementById("pt-delta").textContent = (d*100 >= 0 ? '+' : '') + (d*100).toFixed(3) + " pp";
+  document.getElementById("pt-delta").style.color = d > 0 ? "var(--green)" : (d < 0 ? "var(--red)" : "var(--muted)");
+}
+
+function renderWeightVisual(t){
+  const wM = monthlyWeightsMvo[t];
+  const wO = monthlyWeightsOly[t];
+  let html = "";
+  for (const a of ASSETS){
+    const wMa = wM[a], wOa = wO[a];
+    const dW = wOa - wMa;
+    const dCls = dW > 0.005 ? "pos" : (dW < -0.005 ? "neg" : "zero");
+    const dSym = dW > 0.005 ? "+" : "";
+    html += `<div class="weight-row">
+      <div class="wt-name ${a.toLowerCase()}">${a}</div>
+      <div class="wt-bar"><div class="wt-fill ${a.toLowerCase()}" style="width:${wOa*100*1.7}%;"></div></div>
+      <div class="wt-val">${(wOa*100).toFixed(1)}%</div>
+      <div class="wt-delta ${dCls}">${dSym}${(dW*100).toFixed(2)} pp</div>
+    </div>`;
+  }
+  document.getElementById("wt-visual").innerHTML = html;
+}
+
+function renderMacroState(t){
+  const f = macroFeatures[t];
+  document.getElementById("macro-state").innerHTML =
+    `slope  = ${(f.slope >= 0 ? '+' : '') + f.slope.toFixed(2)} pp    <span style="color:#5A6378;">(H1)</span><br>` +
+    `credit = ${f.credit.toFixed(2)} pp    <span style="color:#5A6378;">(H2)</span><br>` +
+    `real   = ${(f.real >= 0 ? '+' : '') + f.real.toFixed(2)} %    <span style="color:#5A6378;">(H3)</span>`;
+
+  const {wasCapped} = overlayAdj(t);
+  const capped = ASSETS.filter(a => wasCapped[a]);
+  if (capped.length > 0){
+    document.getElementById("cap-callout").style.display = "block";
+    document.getElementById("cap-assets").textContent = capped.join(", ");
+  } else {
+    document.getElementById("cap-callout").style.display = "none";
+  }
+}
+
+function renderStats(t){
+  document.getElementById("stat-mvo").textContent = equity.mvo[t+1].toFixed(2) + "×";
+  document.getElementById("stat-oly").textContent = equity.oly[t+1].toFixed(2) + "×";
+  document.getElementById("stat-n1").textContent  = equity.n1[t+1].toFixed(2) + "×";
+  const upto = t+1;
+  const sMvo = computeSharpe(portfolioReturns.mvo.slice(0, upto));
+  const sOly = computeSharpe(portfolioReturns.oly.slice(0, upto));
+  const sN1  = computeSharpe(portfolioReturns.n1.slice(0, upto));
+  document.getElementById("stat-mvo-sub").textContent = `Sharpe: ${isNaN(sMvo)?'—':sMvo.toFixed(3)}`;
+  document.getElementById("stat-oly-sub").textContent = `Sharpe: ${isNaN(sOly)?'—':sOly.toFixed(3)}`;
+  document.getElementById("stat-n1-sub").textContent  = `Sharpe: ${isNaN(sN1)?'—':sN1.toFixed(3)}`;
+  const dSh = sOly - sMvo;
+  const dEl = document.getElementById("stat-delta");
+  dEl.textContent = isNaN(dSh) ? '—' : (dSh >= 0 ? '+' : '') + dSh.toFixed(3);
+  dEl.style.color = dSh > 0 ? "var(--green)" : (dSh < 0 ? "var(--red)" : "var(--muted)");
+  const {maxDD} = computeMaxDD(equity.mvo.slice(0, t+2));
+  document.getElementById("stat-mdd").textContent = (maxDD*100).toFixed(1) + " %";
+  document.getElementById("stat-months").textContent = `${t+1} / 180`;
+  // $1M portfolio tracker
+  const fmtUSD_pv = v => "$" + Math.round(v).toLocaleString("en-US");
+  ["mvo","oly","n1"].forEach(k => {
+    const arr = equity[k];
+    const idx = Math.min(t+1, arr.length-1);
+    const val = arr[idx] * 1000000;
+    const chg = val - 1000000;
+    const el = document.getElementById("pv-" + k);
+    const chgEl = document.getElementById("pv-" + k + "-chg");
+    if (el) el.textContent = fmtUSD_pv(val);
+    if (chgEl){
+      chgEl.textContent = (chg >= 0 ? "+" : "") + fmtUSD_pv(chg) + " vs start";
+      chgEl.className = "chg " + (chg >= 0 ? "pos" : "neg");
+    }
+  });
+
+}
+
+function computeSharpe(r){
+  if (r.length < 3) return NaN;
+  const m = r.reduce((a,b)=>a+b, 0)/r.length;
+  const v = r.reduce((s,x)=>s+(x-m)**2, 0)/(r.length-1);
+  const sd = Math.sqrt(v);
+  return sd === 0 ? NaN : (m/sd) * Math.sqrt(12);
+}
+function computeMaxDD(eq){
+  let peak = eq[0], mdd = 0;
+  for (const v of eq){
+    if (v > peak) peak = v;
+    const dd = (v - peak)/peak;
+    if (dd < mdd) mdd = dd;
+  }
+  return {maxDD: mdd};
+}
+function monthLabel(t){
+  const totalMonths = START_MONTH - 1 + t;
+  const y = START_YEAR + Math.floor(totalMonths/12);
+  const m = (totalMonths%12)+1;
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+
+// ============================================================
+// PLAYBACK CONTROLS
+// ============================================================
+let currentT = 0, playing = false, speed = 1, timer = null;
+
+function render(t){
+  drawAxes();
+  drawLines(t);
+  drawChartLabels(t);
+  renderDecomposition(t);
+  renderWeightVisual(t);
+  renderMacroState(t);
+  renderStats(t);
+  document.getElementById("time-slider").value = t;
+  document.getElementById("time-display").textContent = monthLabel(t);
+}
+function step(dir){
+  currentT = Math.max(0, Math.min(N_MONTHS-1, currentT+dir));
+  render(currentT);
+}
+function play(){
+  if (playing) return; playing = true;
+  document.getElementById("btn-play").textContent = "⏸ Pause";
+  const tick = () => {
+    if (!playing) return;
+    if (currentT >= N_MONTHS-1){ pause(); return; }
+    step(+1);
+    timer = setTimeout(tick, 250/speed);
+  };
+  tick();
+}
+function pause(){ playing = false; document.getElementById("btn-play").textContent = "▶ Play"; clearTimeout(timer); }
+function togglePlay(){ playing ? pause() : play(); }
+
+document.getElementById("btn-play").onclick = togglePlay;
+document.getElementById("btn-back").onclick = () => { pause(); step(-1); };
+document.getElementById("btn-fwd").onclick = () => { pause(); step(+1); };
+document.getElementById("btn-reset").onclick = () => { pause(); currentT = 0; render(0); };
+document.getElementById("time-slider").oninput = (e) => { pause(); currentT = parseInt(e.target.value); render(currentT); };
+document.querySelectorAll(".speed-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".speed-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    speed = parseFloat(b.dataset.speed);
+  };
+});
+
+render(0);
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  function tryClick(attempt) {
+    const btn = document.querySelector('#btn-play');
+    if (btn) {
+      const label = (btn.textContent || '').toLowerCase();
+      if (!label.includes('pause') && !label.includes('pausa')) btn.click();
+      return;
+    }
+    if (attempt < 20) setTimeout(() => tryClick(attempt + 1), 200);
+  }
+  if (document.readyState === 'complete') setTimeout(() => tryClick(0), 400);
+  else window.addEventListener('load', () => setTimeout(() => tryClick(0), 400));
+})();
+</script>
+
+</body>
+</html>

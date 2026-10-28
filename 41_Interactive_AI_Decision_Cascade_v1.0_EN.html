@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Decision Cascade · Macro signals → Rebalance suggestion · Practicum Part 2</title>
+<style>
+:root{--ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;--lgray:#E2E8F0;--xlgray:#F1F5F9;--blue:#2563EB;--lblue:#DBEAFE;--teal:#0D9488;--lteal:#CCFBF1;--green:#15803D;--lgreen:#DCFCE7;--amber:#D97706;--lamber:#FEF3C7;--red:#B91C1C;--lred:#FEE2E2;--purple:#7E22CE;--lpurple:#F3E8FF;}
+*{box-sizing:border-box;}
+body{margin:0;padding:22px 30px 40px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#F0F2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.5;}
+.wrap{max-width:1400px;margin:0 auto;}
+.kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:6px;}
+h1{font-family:Georgia,serif;font-size:24px;font-weight:700;margin:0 0 6px;line-height:1.25;}
+.sub{font-size:13px;color:var(--muted);font-style:italic;margin:0 0 20px;}
+
+.panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.panel h2{font-family:Georgia,serif;font-size:15px;margin:0 0 12px;color:var(--ink);border-bottom:2px solid var(--amber);padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.panel h2 .step-num{background:var(--amber);color:var(--white);font-family:Georgia,serif;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:0.5px;}
+.hint{font-size:11.5px;color:var(--muted);font-style:italic;margin:6px 0;}
+
+/* Month picker */
+.month-controls{display:grid;grid-template-columns:auto auto auto 1fr auto;gap:12px;align-items:center;background:var(--ink);color:var(--white);padding:12px 18px;border-radius:10px;margin-bottom:16px;}
+.btn{background:var(--amber);color:var(--white);border:none;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:12.5px;transition:all 0.15s;font-family:inherit;}
+.btn:hover{background:#B45309;transform:translateY(-1px);}
+.btn.sec{background:#334155;}
+.btn.sec:hover{background:#475569;}
+.time-slider{width:100%;height:6px;background:#334155;border-radius:3px;outline:none;-webkit-appearance:none;}
+.time-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--amber);cursor:pointer;}
+.time-display{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--amber);white-space:nowrap;}
+.preset-scenarios{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.scenario-btn{background:var(--white);border:1.5px solid var(--lgray);border-radius:6px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;color:var(--ink);}
+.scenario-btn:hover{border-color:var(--amber);background:var(--lamber);}
+.scenario-btn.active{border-color:var(--amber);background:var(--lamber);color:var(--amber);}
+
+/* Cascade layout */
+.cascade{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;position:relative;}
+.stage-tile{background:var(--white);border:2px solid var(--lgray);border-radius:10px;padding:14px 12px;text-align:center;position:relative;cursor:pointer;transition:all 0.2s;}
+.stage-tile:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 6px 16px rgba(217,119,6,0.15);}
+.stage-tile.active{border-color:var(--amber);background:var(--lamber);box-shadow:0 0 0 3px var(--amber),0 8px 24px rgba(217,119,6,0.25);}
+.stage-num{font-family:Georgia,serif;font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1px;}
+.stage-name{font-family:Georgia,serif;font-size:13px;font-weight:700;color:var(--ink);margin:4px 0 3px;}
+.stage-icon{font-size:24px;margin:6px 0;}
+.stage-summary{font-size:10px;color:var(--muted);font-style:italic;line-height:1.35;}
+.stage-arrow{position:absolute;top:50%;right:-10px;transform:translateY(-50%);width:20px;height:20px;background:var(--amber);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;z-index:2;font-size:12px;}
+.stage-arrow.hidden{display:none;}
+
+/* Features chips */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.feature-chip{background:var(--xlgray);border-left:3px solid;border-radius:5px;padding:8px 10px;font-size:11.5px;}
+.feature-chip.h1{border-left-color:var(--green);background:var(--lgreen);}
+.feature-chip.h2{border-left-color:var(--red);background:var(--lred);}
+.feature-chip.h3{border-left-color:var(--amber);background:var(--lamber);}
+.feature-chip .name{font-family:Georgia,serif;font-weight:700;font-size:11px;color:var(--ink);}
+.feature-chip .value{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;margin-top:2px;}
+.feature-chip .tag{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--muted);}
+
+/* Per-asset XGBoost inference cards */
+.xgb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px;}
+.xgb-card{background:var(--white);border:2px solid;border-radius:8px;padding:12px 10px;text-align:center;position:relative;}
+.xgb-card.spy{border-color:var(--blue);}
+.xgb-card.agg{border-color:var(--teal);}
+.xgb-card.dbc{border-color:var(--amber);}
+.xgb-card.tb3ms{border-color:var(--purple);}
+.xgb-asset{font-family:Georgia,serif;font-size:14px;font-weight:700;}
+.xgb-card.spy .xgb-asset{color:var(--blue);}
+.xgb-card.agg .xgb-asset{color:var(--teal);}
+.xgb-card.dbc .xgb-asset{color:var(--amber);}
+.xgb-card.tb3ms .xgb-asset{color:var(--purple);}
+.xgb-label{font-size:9.5px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:6px;}
+.xgb-prediction{font-family:Georgia,serif;font-size:20px;font-weight:700;margin-top:2px;font-family:ui-monospace,Menlo,monospace;}
+.xgb-prediction.pos{color:var(--green);}
+.xgb-prediction.neg{color:var(--red);}
+.xgb-tree{font-size:22px;margin:4px 0;opacity:0.6;}
+.xgb-brain{position:absolute;top:8px;right:8px;font-size:14px;}
+
+/* SHAP per-asset breakdown */
+.shap-per-asset{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.shap-block{background:var(--xlgray);border-radius:6px;padding:10px 12px;}
+.shap-block h4{font-family:Georgia,serif;font-size:12px;margin:0 0 8px;text-align:center;}
+.shap-block.spy h4{color:var(--blue);}
+.shap-block.agg h4{color:var(--teal);}
+.shap-block.dbc h4{color:var(--amber);}
+.shap-block.tb3ms h4{color:var(--purple);}
+.shap-row{display:grid;grid-template-columns:80px 1fr 40px;gap:6px;align-items:center;font-size:9.5px;margin-bottom:3px;}
+.shap-row .fname{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:9px;text-align:right;}
+.shap-row .fbar{height:12px;background:var(--white);border-radius:2px;position:relative;overflow:hidden;}
+.shap-row .fbar-fill{position:absolute;height:100%;top:0;}
+.shap-row .fbar-fill.pos{background:var(--green);left:50%;}
+.shap-row .fbar-fill.neg{background:var(--red);right:50%;}
+.shap-row .fbar-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);}
+.shap-row .fval{font-family:ui-monospace,Menlo,monospace;font-size:9px;text-align:right;}
+
+/* Δw signal → cap → projection visualization */
+.signal-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center;margin-top:8px;}
+.signal-stage{background:var(--white);border:1.5px solid var(--lgray);border-radius:8px;padding:12px 14px;}
+.signal-stage h4{font-family:Georgia,serif;font-size:12px;margin:0 0 8px;color:var(--ink);text-align:center;}
+.signal-arrow-big{font-size:26px;color:var(--amber);font-weight:700;text-align:center;}
+.signal-row{display:grid;grid-template-columns:50px 1fr 65px;gap:6px;align-items:center;margin-bottom:4px;font-size:10.5px;}
+.signal-name{font-family:Georgia,serif;font-weight:700;font-size:11px;}
+.signal-name.spy{color:var(--blue);} .signal-name.agg{color:var(--teal);} .signal-name.dbc{color:var(--amber);} .signal-name.tb3ms{color:var(--purple);}
+.signal-bar{height:14px;background:var(--xlgray);border-radius:2px;position:relative;overflow:hidden;}
+.signal-bar-fill{position:absolute;height:100%;top:0;}
+.signal-bar-fill.pos{background:var(--green);left:50%;}
+.signal-bar-fill.neg{background:var(--red);right:50%;}
+.signal-bar-cap-line{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--amber);opacity:0.7;}
+.signal-bar-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);opacity:0.5;}
+.signal-val{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-align:right;font-weight:700;}
+.signal-val.capped{color:var(--red);}
+
+/* Final rebalance card */
+.rebal-final{background:linear-gradient(135deg,#F0FDF4 0%,#FEF3C7 100%);border:2px solid var(--green);border-radius:12px;padding:20px 24px;margin-top:8px;}
+.rebal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid rgba(21,128,61,0.2);}
+.rebal-title{font-family:Georgia,serif;font-size:16px;font-weight:700;color:var(--ink);}
+.rebal-badge{background:var(--green);color:var(--white);font-size:11px;font-weight:700;padding:5px 12px;border-radius:16px;letter-spacing:0.5px;}
+.rebal-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.rebal-asset{background:var(--white);border-radius:8px;padding:12px;text-align:center;border-top:3px solid;}
+.rebal-asset.spy{border-top-color:var(--blue);}
+.rebal-asset.agg{border-top-color:var(--teal);}
+.rebal-asset.dbc{border-top-color:var(--amber);}
+.rebal-asset.tb3ms{border-top-color:var(--purple);}
+.rebal-asset-name{font-family:Georgia,serif;font-weight:700;font-size:13px;}
+.rebal-asset.spy .rebal-asset-name{color:var(--blue);}
+.rebal-asset.agg .rebal-asset-name{color:var(--teal);}
+.rebal-asset.dbc .rebal-asset-name{color:var(--amber);}
+.rebal-asset.tb3ms .rebal-asset-name{color:var(--purple);}
+.rebal-arrow-block{margin:6px 0;font-size:11px;color:var(--muted);}
+.rebal-from{font-family:ui-monospace,Menlo,monospace;color:var(--muted);}
+.rebal-to{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:16px;color:var(--ink);margin-top:2px;}
+.rebal-delta{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-top:4px;padding:2px 6px;border-radius:4px;display:inline-block;font-weight:700;}
+.rebal-delta.pos{background:var(--lgreen);color:var(--green);}
+.rebal-delta.neg{background:var(--lred);color:var(--red);}
+.rebal-delta.zero{background:var(--xlgray);color:var(--muted);}
+
+/* Supervisor review panel */
+.supervisor-panel{background:var(--white);border:2px dashed var(--amber);border-radius:10px;padding:14px 18px;margin-top:14px;}
+.supervisor-panel h3{font-family:Georgia,serif;font-size:13px;margin:0 0 6px;color:var(--amber);display:flex;align-items:center;gap:6px;}
+.supervisor-checks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
+.sup-check{background:var(--xlgray);border-left:3px solid var(--green);border-radius:5px;padding:8px 10px;}
+.sup-check.warn{border-left-color:var(--amber);background:var(--lamber);}
+.sup-check.risk{border-left-color:var(--red);background:var(--lred);}
+.sup-check-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.sup-check-value{font-family:Georgia,serif;font-weight:700;font-size:13px;color:var(--ink);}
+
+.callout{background:var(--lteal);border-left:3px solid var(--teal);padding:10px 14px;border-radius:5px;margin:8px 0;font-size:11.5px;}
+.callout b{color:var(--teal);}
+
+.foot{margin-top:24px;padding:12px 18px;background:var(--white);border:1px solid var(--lgray);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;}
+
+/* $1M portfolio composition */
+.pv-comp{background:linear-gradient(90deg,#F8FAFC 0%,#FFFFFF 100%);border:1px solid var(--lgray);border-left:4px solid var(--amber);border-radius:10px;padding:16px 20px;margin:14px 0;}
+.pv-comp .pv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.pv-comp .pv-lbl{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.pv-comp .pv-sub{font-size:10px;color:var(--muted);font-style:italic;}
+.pv-comp table{width:100%;border-collapse:collapse;font-size:12px;}
+.pv-comp th{text-align:left;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--lgray);}
+.pv-comp th.num{text-align:right;}
+.pv-comp td{padding:8px;border-bottom:1px solid #F1F5F9;font-family:ui-monospace,Menlo,monospace;}
+.pv-comp td.num{text-align:right;}
+.pv-comp td.asset{font-family:Georgia,serif;font-weight:700;color:var(--ink);}
+.pv-comp td.dollar{font-weight:700;color:var(--ink);}
+.pv-comp td.delta.pos{color:var(--green);font-weight:700;}
+.pv-comp td.delta.neg{color:var(--red);font-weight:700;}
+.pv-comp td.delta.zero{color:var(--muted);}
+.pv-comp tr:last-child td{border-bottom:none;font-weight:700;background:var(--xlgray);}
+
+
+/* Stage playback highlight */
+.stage-highlight{outline:4px solid #D97706 !important;outline-offset:4px;box-shadow:0 0 22px rgba(217,119,6,0.5) !important;transition:all 0.3s;}
+/* Cascade playback bar */
+.playback.cascade{background:#7E22CE;color:#FCD34D;padding:14px 20px;border-radius:10px;margin:14px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:12px;z-index:100;}
+.playback.cascade .pb-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.playback.cascade button{background:white;border:none;color:#1A1F2E;padding:8px 16px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.playback.cascade button:hover{background:#FCD34D;color:#7E22CE;}
+.playback.cascade button.primary{background:#FCD34D;color:#7E22CE;}
+.playback.cascade button.primary:hover{background:white;color:#7E22CE;}
+.playback.cascade .pb-speed{display:flex;gap:4px;}
+.playback.cascade .pb-speed button{padding:6px 10px;font-size:10px;background:rgba(255,255,255,0.2);color:white;}
+.playback.cascade .pb-speed button.active{background:#FCD34D;color:#7E22CE;}
+.playback.cascade .pb-status{flex:1;text-align:right;font-family:Georgia,serif;font-size:13px;}
+.playback.cascade .pb-status .val{color:#FCD34D;font-weight:700;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">AI DECISION CASCADE · MACRO SIGNAL CAPTURE → REBALANCE SUGGESTION · PRACTICUM PART 2</div>
+
+<div class="playback cascade">
+  <span class="pb-lbl">Play cascade · walk through the 8 pipeline stages</span>
+  <button id="cpb-play" class="primary" onclick="togglePlayCascade()">▶ Play</button>
+  <button onclick="resetCascade()">↺ Reset</button>
+  <div class="pb-speed">
+    <button onclick="setCascadeSpeed(1)" id="csp-1" class="active">1×</button>
+    <button onclick="setCascadeSpeed(2)" id="csp-2">2×</button>
+    <button onclick="setCascadeSpeed(4)" id="csp-4">4×</button>
+  </div>
+  <div class="pb-status">Stage: <span class="val" id="cpb-status">— (press Play)</span></div>
+</div>
+
+
+<h1>Watch the AI decide, step by step</h1>
+<p class="sub">This simulator shows the seven stages the pipeline executes at every monthly rebalance: macro signals arrive, four per-asset XGBoost models generate predictions, SHAP explains why, signals are converted to weight adjustments, the HOTL cap enforces the ±10 pp bound, the constraint projection ensures a valid portfolio, and the final rebalance is presented to the supervisor. Pick a month or a stress scenario to see how the model responds.</p>
+
+<!-- Month picker + scenarios -->
+<div class="month-controls">
+  <button class="btn sec" id="btn-back">« Step</button>
+  <button class="btn sec" id="btn-fwd">Step »</button>
+  <div class="time-display" id="time-display">2015-06</div>
+  <input type="range" class="time-slider" id="time-slider" min="0" max="179" value="65" step="1">
+  <button class="btn" id="btn-recompute">🧠 Recompute</button>
+</div>
+
+<div class="preset-scenarios">
+  <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-right:6px;">SCENARIOS:</span>
+  <button class="scenario-btn" data-scenario="normal">Normal regime</button>
+  <button class="scenario-btn" data-scenario="expansion">Expansion (steep curve)</button>
+  <button class="scenario-btn" data-scenario="recession">Recession (flat curve)</button>
+  <button class="scenario-btn" data-scenario="covid">COVID shock (Mar 2020)</button>
+  <button class="scenario-btn" data-scenario="tightening">Fed tightening (2022)</button>
+  <button class="scenario-btn" data-scenario="latehike">Late-hike cycle (2024)</button>
+</div>
+
+<!-- Cascade overview -->
+<div class="panel">
+  <h2>Decision cascade · click any stage to focus <span class="step-num" id="active-stage-label">Stage 1</span></h2>
+  <div class="cascade" id="cascade-nav">
+    <div class="stage-tile active" data-stage="1"><div class="stage-num">STAGE 1</div><div class="stage-icon">📡</div><div class="stage-name">Signal ingestion</div><div class="stage-summary">9 pre-registered macro features arrive</div><div class="stage-arrow">→</div></div>
+    <div class="stage-tile" data-stage="2"><div class="stage-num">STAGE 2</div><div class="stage-icon">🧠</div><div class="stage-name">XGBoost inference</div><div class="stage-summary">4 per-asset regressors predict direction</div><div class="stage-arrow">→</div></div>
+    <div class="stage-tile" data-stage="3"><div class="stage-num">STAGE 3</div><div class="stage-icon">🔍</div><div class="stage-name">SHAP attribution</div><div class="stage-summary">Explain each prediction feature-by-feature</div><div class="stage-arrow">→</div></div>
+    <div class="stage-tile" data-stage="4"><div class="stage-num">STAGE 4</div><div class="stage-icon">⚙️</div><div class="stage-name">Signal → Δw</div><div class="stage-summary">Convert predictions to weight adjustments</div><div class="stage-arrow hidden">→</div></div>
+  </div>
+  <div class="cascade" style="margin-top:10px;">
+    <div class="stage-tile" data-stage="5"><div class="stage-num">STAGE 5</div><div class="stage-icon">🛡️</div><div class="stage-name">HOTL cap ±10 pp</div><div class="stage-summary">Enforce pre-registered bound</div><div class="stage-arrow">→</div></div>
+    <div class="stage-tile" data-stage="6"><div class="stage-num">STAGE 6</div><div class="stage-icon">📐</div><div class="stage-name">Simplex projection</div><div class="stage-summary">Long-only + fully invested</div><div class="stage-arrow">→</div></div>
+    <div class="stage-tile" data-stage="7"><div class="stage-num">STAGE 7</div><div class="stage-icon">✅</div><div class="stage-name">Final proposal</div><div class="stage-summary">Presented to human supervisor</div><div class="stage-arrow hidden">→</div></div>
+    <div class="stage-tile" data-stage="8"><div class="stage-num">STAGE 8</div><div class="stage-icon">👁️</div><div class="stage-name">Supervisor review</div><div class="stage-summary">HOTL sign-check + audit log</div><div class="stage-arrow hidden">→</div></div>
+  </div>
+</div>
+
+<!-- STAGE 1 · Signal ingestion -->
+<div class="panel" id="stage-1-panel">
+  <h2>1 · Macro signal ingestion · this month's inputs to the model <span class="step-num">Stage 1</span></h2>
+  <p class="hint">The 9 pre-registered macroeconomic features arrive from the master panel (built by WP1). The three highlighted features (H1/H2/H3) are those with pre-registered directional hypotheses.</p>
+  <div class="features-grid" id="features-grid"></div>
+</div>
+
+<!-- STAGE 2 · XGBoost inference -->
+<div class="panel" id="stage-2-panel">
+  <h2>2 · Per-asset XGBoost inference · four independent regressors <span class="step-num">Stage 2</span></h2>
+  <p class="hint">Each of the four assets has its own XGBoost regressor (200 trees, depth 3, learning rate 0.05) trained on the trailing 60 months. Each model ingests the same 9 features and predicts a directional signal for the next month.</p>
+  <div class="xgb-grid" id="xgb-grid"></div>
+  <div class="callout">
+    <b>Inference latency:</b> ~30 ms for all four models combined · this is the "AI moment" — the point at which the algorithm forms its opinion about the near-term regime.
+  </div>
+</div>
+
+<!-- STAGE 3 · SHAP -->
+<div class="panel" id="stage-3-panel">
+  <h2>3 · SHAP attribution · <em>why</em> the model thinks that <span class="step-num">Stage 3</span></h2>
+  <p class="hint">SHAP TreeExplainer decomposes each per-asset prediction into individual feature contributions. This is the interpretability layer that makes the AI's reasoning auditable and enables the H1/H2/H3 sign check.</p>
+  <div class="shap-per-asset" id="shap-per-asset"></div>
+</div>
+
+<!-- STAGE 4-5-6 · Signal flow -->
+<div class="panel" id="stage-4-panel">
+  <h2>4-5-6 · From raw signal to constrained rebalance <span class="step-num">Stages 4-6</span></h2>
+  <p class="hint">The raw XGBoost signal is converted to a weight adjustment (Δw = signal × scale). The HOTL cap enforces the pre-registered ±10 pp bound (Stage 5). The simplex projection ensures the final weights are non-negative and sum to one (Stage 6).</p>
+  <div class="signal-flow">
+    <div class="signal-stage">
+      <h4>4 · Raw Δw (unconstrained)</h4>
+      <div id="signal-raw"></div>
+    </div>
+    <div class="signal-arrow-big">→</div>
+    <div class="signal-stage" style="border-color:var(--amber);">
+      <h4>5 · After HOTL cap ±10 pp</h4>
+      <div id="signal-capped"></div>
+    </div>
+    <div class="signal-arrow-big">→</div>
+    <div class="signal-stage" style="border-color:var(--green);">
+      <h4>6 · After simplex projection</h4>
+      <div id="signal-projected"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 7 · Final proposal -->
+
+<div class="pv-comp" id="pv-composition">
+  <div class="pv-head">
+    <span class="pv-lbl">$1,000,000 portfolio composition · before and after this rebalance</span>
+    <span class="pv-sub">$1M starting capital · baseline weights → overlay-adjusted → dollars per asset</span>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Asset</th>
+      <th class="num">Baseline weight</th>
+      <th class="num">Overlay weight</th>
+      <th class="num">Δ pp</th>
+      <th class="num">Baseline $</th>
+      <th class="num">Overlay $</th>
+      <th class="num">Δ $</th>
+    </tr></thead>
+    <tbody id="pv-tbody"></tbody>
+  </table>
+</div>
+<div class="rebal-final" id="stage-7-panel">
+  <div class="rebal-header">
+    <div class="rebal-title">Stage 7 · Final rebalance suggestion (from baseline → overlay)</div>
+    <div class="rebal-badge">READY FOR SUPERVISOR</div>
+  </div>
+  <div class="rebal-grid" id="rebal-grid"></div>
+  <div class="callout">
+    <b>What the supervisor sees.</b> The final weights, the SHAP breakdown, the sign-check status per hypothesis, and any HOTL cap engagements. All logged with a SHA-256-hashed audit entry.
+  </div>
+</div>
+
+<!-- STAGE 8 · Supervisor review -->
+<div class="supervisor-panel" id="stage-8-panel">
+  <h3>👁️ Stage 8 · Human-on-the-Loop review checklist</h3>
+  <p class="hint">Before the rebalance goes to production, the supervisor scans this checklist. Green = pass · amber = attention · red = intervene.</p>
+  <div class="supervisor-checks" id="sup-checks"></div>
+</div>
+
+<div class="foot">
+  AI Decision Cascade v1.0 · shows the 8-stage inference pipeline the model executes at every monthly rebalance · Pre-Registration v1.0 (13-Jun-2026) fixes all constants · Framework aligned with EU AI Act Article 14 (Human Oversight) · Giovany Gomez Molina (x23255927) · MSCDAD_A · Supervisor: Dr Muhammad Asif Razzaq
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const ASSETS = ["SPY","AGG","DBC","TB3MS"];
+const START_YEAR = 2010, START_MONTH = 1;
+const N_MONTHS = 180;
+
+// Pre-registered features (9)
+const FEATURES = [
+  {name:"yield_curve_slope",       display:"Yield-curve slope (10Y-2Y)",  hyp:"H1", unit:"pp"},
+  {name:"credit_spread",           display:"Credit spread (BAA-10Y)",     hyp:"H2", unit:"pp"},
+  {name:"real_short_rate",         display:"Real short rate",             hyp:"H3", unit:"%"},
+  {name:"SPY_momentum_12m",        display:"SPY 12m momentum",            hyp:"—",  unit:"%"},
+  {name:"SPY_vol_60d",             display:"SPY 60d volatility (ann.)",   hyp:"—",  unit:"%"},
+  {name:"USD_broad_change",        display:"USD broad 12m change",        hyp:"—",  unit:"%"},
+  {name:"commodity_momentum_6m",   display:"Commodity 6m momentum",       hyp:"—",  unit:"%"},
+  {name:"term_spread_5Y2Y",        display:"Term spread (5Y-2Y)",         hyp:"—",  unit:"pp"},
+  {name:"inflation_expectation_5Y",display:"Inflation exp. 5Y",           hyp:"—",  unit:"%"},
+];
+
+// Baseline weights (typical MVO trailing solution)
+const W_MVO = {SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09};
+
+// Cap
+const CAP = 0.10;
+const SIGNAL_SCALE = 1.0;   // multiplier applied to raw prediction to get Δw
+
+// XGBoost surrogate coefficients per (asset, feature)
+// Reflects Final Report walk-forward SHAP: H1 CONFIRMED, H2 REJECTED (SPY sign flip), H3 REJECTED (DBC sign flip)
+const COEFFS = {
+  SPY:   {yield_curve_slope:+0.020, credit_spread:+0.006, real_short_rate:+0.001,
+          SPY_momentum_12m:+0.012, SPY_vol_60d:-0.008, USD_broad_change:-0.003,
+          commodity_momentum_6m:+0.002, term_spread_5Y2Y:+0.004, inflation_expectation_5Y:-0.002},
+  AGG:   {yield_curve_slope:-0.018, credit_spread:+0.004, real_short_rate:+0.000,
+          SPY_momentum_12m:-0.005, SPY_vol_60d:+0.006, USD_broad_change:+0.002,
+          commodity_momentum_6m:-0.001, term_spread_5Y2Y:-0.003, inflation_expectation_5Y:-0.001},
+  DBC:   {yield_curve_slope:+0.006, credit_spread:-0.003, real_short_rate:+0.003,
+          SPY_momentum_12m:+0.002, SPY_vol_60d:-0.001, USD_broad_change:-0.005,
+          commodity_momentum_6m:+0.008, term_spread_5Y2Y:+0.001, inflation_expectation_5Y:+0.003},
+  TB3MS: {yield_curve_slope:-0.008, credit_spread:+0.005, real_short_rate:+0.002,
+          SPY_momentum_12m:-0.003, SPY_vol_60d:+0.003, USD_broad_change:+0.001,
+          commodity_momentum_6m:-0.001, term_spread_5Y2Y:-0.002, inflation_expectation_5Y:+0.001},
+};
+
+// ============================================================
+// SIMULATE FEATURES OVER 180 MONTHS
+// ============================================================
+function seedRand(seed){
+  return function(){ seed = (seed*9301 + 49297) % 233280; return seed/233280; };
+}
+const rand = seedRand(42);
+function normalRand(){ let u=0,v=0; while(u===0)u=rand(); while(v===0)v=rand();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+const featureValues = [];
+for (let t=0; t<N_MONTHS; t++){
+  const fv = {};
+  fv.yield_curve_slope = 1.2 + 0.9*Math.sin(t*0.04) + 0.4*Math.sin(t*0.11) + 0.15*normalRand();
+  fv.credit_spread     = 1.6 + 0.6*Math.sin(t*0.07 + 1.2) + 0.15*normalRand();
+  fv.real_short_rate   = 0.3 + 0.7*Math.sin(t*0.05 + 2.1) + 0.15*normalRand();
+  fv.SPY_momentum_12m  = 7 + 8*Math.sin(t*0.06) + normalRand()*3;
+  fv.SPY_vol_60d       = 14 + 4*Math.abs(Math.sin(t*0.08)) + normalRand()*1.5;
+  fv.USD_broad_change  = 2 + 4*Math.sin(t*0.05 + 0.5) + normalRand()*2;
+  fv.commodity_momentum_6m = -3 + 12*Math.sin(t*0.09 + 1.5) + normalRand()*3;
+  fv.term_spread_5Y2Y  = 0.4 + 0.5*Math.sin(t*0.04 + 0.3) + 0.1*normalRand();
+  fv.inflation_expectation_5Y = 2.0 + 0.6*Math.sin(t*0.03 + 1.0) + 0.15*normalRand();
+
+  // Inject shocks:
+  if (t >= 120 && t <= 128){  // COVID
+    fv.yield_curve_slope -= 1.5;
+    fv.credit_spread += 2.5;
+    fv.real_short_rate -= 2.8;
+    fv.SPY_vol_60d += 25;
+    fv.SPY_momentum_12m -= 15;
+  }
+  if (t >= 144 && t <= 152){  // 2022 tightening
+    fv.credit_spread += 1.2;
+    fv.real_short_rate += 1.8;
+    fv.SPY_momentum_12m -= 8;
+    fv.yield_curve_slope -= 1.0;
+  }
+  if (t >= 165){  // late-hike 2024
+    fv.yield_curve_slope -= 0.8;
+    fv.real_short_rate += 2.0;
+  }
+
+  featureValues.push(fv);
+}
+
+// Scenario presets (map to specific month indices)
+const SCENARIOS = {
+  normal: 65,
+  expansion: 88,
+  recession: 45,
+  covid: 122,
+  tightening: 148,
+  latehike: 170,
+};
+
+// ============================================================
+// COMPUTATIONS
+// ============================================================
+function predictAsset(assetCoeffs, features){
+  // Predict a single value (signed magnitude) representing directional bias
+  let pred = 0;
+  const contribs = {};
+  for (const fname in assetCoeffs){
+    const c = assetCoeffs[fname];
+    // Normalise feature contribution using its scale
+    // For pedagogy we scale each feature into roughly [-3, +3]
+    const f = features[fname];
+    let normalised = f;
+    if (fname === "SPY_momentum_12m")  normalised = f / 5;
+    else if (fname === "SPY_vol_60d")  normalised = (f - 15) / 5;
+    else if (fname === "USD_broad_change") normalised = f / 3;
+    else if (fname === "commodity_momentum_6m") normalised = f / 6;
+    else if (fname === "inflation_expectation_5Y") normalised = (f - 2) / 1;
+    const shap = c * normalised;
+    contribs[fname] = shap;
+    pred += shap;
+  }
+  return {prediction: pred, contribs};
+}
+
+function rawAdjustment(prediction){
+  return prediction * SIGNAL_SCALE;
+}
+function capped(raw){
+  return {value: Math.max(-CAP, Math.min(CAP, raw)), wasCapped: Math.abs(raw) > CAP};
+}
+function projectSimplex(weights){
+  const clip = Object.fromEntries(Object.entries(weights).map(([k,v])=>[k, Math.max(0, v)]));
+  const s = Object.values(clip).reduce((a,b)=>a+b,0);
+  return Object.fromEntries(Object.entries(clip).map(([k,v])=>[k, v/s]));
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function monthLabel(t){
+  const total = START_MONTH - 1 + t;
+  const y = START_YEAR + Math.floor(total/12);
+  const m = (total%12) + 1;
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+function fmt(v, d=3, sign=false){
+  if (isNaN(v)) return "—";
+  const s = sign && v >= 0 ? "+" : "";
+  return s + v.toFixed(d);
+}
+
+let currentT = 65;
+
+function render(t){
+  const features = featureValues[t];
+
+  // STAGE 1 · features
+  let fHtml = "";
+  for (const f of FEATURES){
+    const cls = f.hyp === "H1" ? "h1" : f.hyp === "H2" ? "h2" : f.hyp === "H3" ? "h3" : "";
+    const v = features[f.name];
+    const displayVal = f.unit === "pp" ? `${v >= 0 ? '+' : ''}${v.toFixed(2)} pp`
+                     : `${v >= 0 ? '+' : ''}${v.toFixed(2)} ${f.unit}`;
+    fHtml += `<div class="feature-chip ${cls}">
+      <div class="tag">${f.hyp === "—" ? "control" : f.hyp}</div>
+      <div class="name">${f.display}</div>
+      <div class="value">${displayVal}</div>
+    </div>`;
+  }
+  document.getElementById("features-grid").innerHTML = fHtml;
+
+  // STAGE 2 · XGBoost predictions
+  const predictions = {};
+  const allContribs = {};
+  for (const a of ASSETS){
+    const {prediction, contribs} = predictAsset(COEFFS[a], features);
+    predictions[a] = prediction;
+    allContribs[a] = contribs;
+  }
+  let xHtml = "";
+  for (const a of ASSETS){
+    const p = predictions[a];
+    const pClass = p >= 0 ? "pos" : "neg";
+    const arrow = p >= 0 ? "↑" : "↓";
+    xHtml += `<div class="xgb-card ${a.toLowerCase()}">
+      <div class="xgb-brain">🧠</div>
+      <div class="xgb-asset">${a}</div>
+      <div class="xgb-tree">🌳🌳🌳</div>
+      <div class="xgb-label">Predicted direction</div>
+      <div class="xgb-prediction ${pClass}">${arrow} ${fmt(p, 4, true)}</div>
+      <div class="xgb-label" style="margin-top:6px;">200 trees · depth 3 · lr 0.05</div>
+    </div>`;
+  }
+  document.getElementById("xgb-grid").innerHTML = xHtml;
+
+  // STAGE 3 · SHAP per asset
+  let sHtml = "";
+  for (const a of ASSETS){
+    const c = allContribs[a];
+    // Sort by absolute magnitude
+    const sorted = Object.entries(c).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]));
+    const maxAbs = Math.max(...sorted.map(([,v]) => Math.abs(v))) || 1;
+    let rowsHtml = "";
+    for (const [fname, val] of sorted.slice(0, 6)){  // top 6
+      const pct = Math.min(50, (Math.abs(val) / maxAbs) * 45);
+      const cls = val > 0 ? "pos" : "neg";
+      const shortName = fname.replace(/_/g,' ').replace('yield curve slope','curve').replace('credit spread','credit').replace('real short rate','real_rate').replace('SPY momentum 12m','SPY_mom').replace('SPY vol 60d','SPY_vol').replace('USD broad change','USD_ch').replace('commodity momentum 6m','DBC_mom').replace('term spread 5Y2Y','term').replace('inflation expectation 5Y','inf_exp');
+      rowsHtml += `<div class="shap-row">
+        <div class="fname">${shortName}</div>
+        <div class="fbar">
+          <div class="fbar-mid"></div>
+          <div class="fbar-fill ${cls}" style="width:${pct}%; ${val > 0 ? '' : 'right:50%;left:auto;'}"></div>
+        </div>
+        <div class="fval">${fmt(val, 4, true)}</div>
+      </div>`;
+    }
+    sHtml += `<div class="shap-block ${a.toLowerCase()}">
+      <h4>${a}</h4>
+      ${rowsHtml}
+    </div>`;
+  }
+  document.getElementById("shap-per-asset").innerHTML = sHtml;
+
+  // STAGE 4-5-6 · Signal flow
+  const raw = {}, cappedVals = {}, wasCapped = {};
+  for (const a of ASSETS){
+    raw[a] = rawAdjustment(predictions[a]);
+    const cResult = capped(raw[a]);
+    cappedVals[a] = cResult.value;
+    wasCapped[a] = cResult.wasCapped;
+  }
+  const wRaw = Object.fromEntries(ASSETS.map(a => [a, W_MVO[a] + cappedVals[a]]));
+  const wProjected = projectSimplex(wRaw);
+
+  // $1M portfolio composition
+  const fmt$ = v => "$" + Math.round(v).toLocaleString("en-US");
+  const fmtPct = v => (v*100).toFixed(1) + "%";
+  const totalCap = 1000000;
+  const totalBase = ASSETS.reduce((s,a) => s + W_MVO[a]*totalCap, 0);
+  const totalOly = ASSETS.reduce((s,a) => s + wProjected[a]*totalCap, 0);
+  let pvRows = "";
+  for (const a of ASSETS){
+    const wB = W_MVO[a], wO = wProjected[a];
+    const dW = (wO - wB) * 100;
+    const $B = wB * totalCap, $O = wO * totalCap;
+    const d$ = $O - $B;
+    const cls = d$ > 500 ? "pos" : (d$ < -500 ? "neg" : "zero");
+    pvRows += `<tr>
+      <td class="asset">${a}</td>
+      <td class="num">${fmtPct(wB)}</td>
+      <td class="num">${fmtPct(wO)}</td>
+      <td class="num delta ${cls}">${dW>=0?'+':''}${dW.toFixed(1)} pp</td>
+      <td class="num dollar">${fmt$($B)}</td>
+      <td class="num dollar">${fmt$($O)}</td>
+      <td class="num delta ${cls}">${d$>=0?'+':''}${fmt$(d$)}</td>
+    </tr>`;
+  }
+  pvRows += `<tr>
+    <td class="asset">TOTAL</td>
+    <td class="num">100.0%</td>
+    <td class="num">100.0%</td>
+    <td class="num">—</td>
+    <td class="num dollar">${fmt$(totalBase)}</td>
+    <td class="num dollar">${fmt$(totalOly)}</td>
+    <td class="num">${fmt$(0)}</td>
+  </tr>`;
+  const tbody = document.getElementById("pv-tbody");
+  if (tbody) tbody.innerHTML = pvRows;
+
+
+  const signalMax = Math.max(...ASSETS.map(a => Math.abs(raw[a])), 0.15);
+  function signalRowHtml(assets, values, wasC){
+    let html = "";
+    for (const a of assets){
+      const v = values[a];
+      const pct = Math.min(50, (Math.abs(v) / signalMax) * 45);
+      const cls = v > 0 ? "pos" : "neg";
+      const wasCC = wasC ? wasC[a] : false;
+      const valStr = wasCC ? `<span class="signal-val capped">${fmt(v*100, 2, true)} pp 🔒</span>`
+                            : `<span class="signal-val">${fmt(v*100, 2, true)} pp</span>`;
+      html += `<div class="signal-row">
+        <div class="signal-name ${a.toLowerCase()}">${a}</div>
+        <div class="signal-bar">
+          <div class="signal-bar-mid"></div>
+          <div class="signal-bar-fill ${cls}" style="width:${pct}%; ${v > 0 ? '' : 'right:50%;left:auto;'}"></div>
+        </div>
+        ${valStr}
+      </div>`;
+    }
+    return html;
+  }
+  document.getElementById("signal-raw").innerHTML = signalRowHtml(ASSETS, raw, null);
+  document.getElementById("signal-capped").innerHTML = signalRowHtml(ASSETS, cappedVals, wasCapped);
+  // For projection: show final weights change (deviation from baseline projected)
+  const wProjDeltas = Object.fromEntries(ASSETS.map(a => [a, wProjected[a] - W_MVO[a]]));
+  document.getElementById("signal-projected").innerHTML = signalRowHtml(ASSETS, wProjDeltas, null);
+
+  // STAGE 7 · Final rebalance
+  let rHtml = "";
+  for (const a of ASSETS){
+    const from = W_MVO[a];
+    const to = wProjected[a];
+    const d = to - from;
+    const dCls = d > 0.005 ? "pos" : (d < -0.005 ? "neg" : "zero");
+    const dSym = d >= 0 ? "+" : "";
+    rHtml += `<div class="rebal-asset ${a.toLowerCase()}">
+      <div class="rebal-asset-name">${a}</div>
+      <div class="rebal-arrow-block">
+        <div class="rebal-from">from ${(from*100).toFixed(1)} %</div>
+        <div class="rebal-to">${(to*100).toFixed(1)} %</div>
+      </div>
+      <span class="rebal-delta ${dCls}">${dSym}${(d*100).toFixed(2)} pp</span>
+    </div>`;
+  }
+  document.getElementById("rebal-grid").innerHTML = rHtml;
+
+  // STAGE 8 · Supervisor checklist
+  const capCount = ASSETS.filter(a => wasCapped[a]).length;
+  const bigMoves = ASSETS.filter(a => Math.abs(wProjected[a] - W_MVO[a]) > 0.05).length;
+  const h1Match = allContribs.SPY.yield_curve_slope > 0 && allContribs.AGG.yield_curve_slope < 0;
+
+  const sup = [
+    {title:"HOTL cap engagements", value: capCount === 0 ? "0 · none this month" : `${capCount} · investigate`, cls: capCount > 0 ? "warn" : ""},
+    {title:"Large moves (>5 pp)", value: `${bigMoves} of 4`, cls: bigMoves > 1 ? "warn" : ""},
+    {title:"H1 sign check (this month)", value: h1Match ? "✓ Consistent" : "✗ Mismatch", cls: h1Match ? "" : "risk"},
+    {title:"Pre-Reg §6 hashes", value: "✓ Intact", cls: ""},
+    {title:"Amendment §8 required?", value: "No", cls: ""},
+    {title:"Audit entry", value: "✓ Written", cls: ""},
+  ];
+  let supHtml = "";
+  for (const s of sup){
+    supHtml += `<div class="sup-check ${s.cls}">
+      <div class="sup-check-title">${s.title}</div>
+      <div class="sup-check-value">${s.value}</div>
+    </div>`;
+  }
+  document.getElementById("sup-checks").innerHTML = supHtml;
+
+  // Update time display
+  document.getElementById("time-display").textContent = monthLabel(t);
+  document.getElementById("time-slider").value = t;
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+document.querySelectorAll("#cascade-nav .stage-tile, .cascade .stage-tile").forEach(tile => {
+  tile.onclick = () => {
+    document.querySelectorAll(".stage-tile").forEach(t => t.classList.remove("active"));
+    tile.classList.add("active");
+    const stageNum = tile.dataset.stage;
+    document.getElementById("active-stage-label").textContent = `Stage ${stageNum}`;
+    // Scroll to the relevant panel
+    const panelMap = {"1":"stage-1-panel","2":"stage-2-panel","3":"stage-3-panel","4":"stage-4-panel","5":"stage-4-panel","6":"stage-4-panel","7":"stage-7-panel","8":"stage-8-panel"};
+    const el = document.getElementById(panelMap[stageNum]);
+    if (el) el.scrollIntoView({behavior:"smooth", block:"start"});
+  };
+});
+
+document.querySelectorAll(".scenario-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".scenario-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentT = SCENARIOS[b.dataset.scenario];
+    render(currentT);
+  };
+});
+
+document.getElementById("btn-back").onclick = () => { currentT = Math.max(0, currentT-1); render(currentT); };
+document.getElementById("btn-fwd").onclick = () => { currentT = Math.min(N_MONTHS-1, currentT+1); render(currentT); };
+document.getElementById("time-slider").oninput = (e) => { currentT = parseInt(e.target.value); render(currentT); };
+document.getElementById("btn-recompute").onclick = () => { render(currentT); };
+
+// Initial
+render(currentT);
+
+// ============================================================
+// CASCADE PLAYBACK · walk through the 8 pipeline stages
+// ============================================================
+let playCascade = {
+  currentStage: 0,  // 0 = none · 1-8 = stages
+  playing: false,
+  interval: null,
+  speed: 1,
+};
+
+// Stage names for status label
+const STAGE_LABELS_EN = ["—","Signal","XGBoost","SHAP","Δw","Cap","Simplex","Proposal","Supervisor"];
+const STAGE_LABELS_ES = ["—","Señal","XGBoost","SHAP","Δw","Cap","Simplex","Propuesta","Supervisor"];
+
+function togglePlayCascade(){
+  if (playCascade.playing) pauseCascade();
+  else startCascade();
+}
+function startCascade(){
+  if (playCascade.currentStage >= 8) playCascade.currentStage = 0;
+  playCascade.playing = true;
+  const btn = document.getElementById("cpb-play");
+  if (btn) btn.textContent = "⏸ Pause";
+  const stepMs = Math.max(400, 1600 / playCascade.speed);
+  const stepFn = function(){
+    playCascade.currentStage++;
+    if (playCascade.currentStage > 8){
+      pauseCascade();
+      return;
+    }
+    highlightStage(playCascade.currentStage);
+    if (playCascade.currentStage >= 8){
+      const status = document.getElementById("cpb-status");
+      if (status){
+        const isES = document.documentElement.lang === "es";
+        status.textContent = isES ? "cascada completa · pulsa ↺" : "cascade complete · press ↺";
+      }
+      pauseCascade();
+    }
+  };
+  // Immediate first step
+  stepFn();
+  playCascade.interval = setInterval(stepFn, stepMs);
+}
+function pauseCascade(){
+  playCascade.playing = false;
+  if (playCascade.interval){ clearInterval(playCascade.interval); playCascade.interval = null; }
+  const btn = document.getElementById("cpb-play");
+  if (btn) btn.textContent = "▶ Play";
+}
+function resetCascade(){
+  pauseCascade();
+  playCascade.currentStage = 0;
+  // Clear all highlights
+  for (let i = 1; i <= 8; i++){
+    const panelMap = {"1":"stage-1-panel","2":"stage-2-panel","3":"stage-3-panel","4":"stage-4-panel","5":"stage-4-panel","6":"stage-4-panel","7":"stage-7-panel","8":"stage-8-panel"};
+    const el = document.getElementById(panelMap[i]);
+    if (el) el.classList.remove("stage-highlight");
+  }
+  const status = document.getElementById("cpb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    status.textContent = isES ? "listo · pulsa ▶ Play" : "ready · press ▶ Play";
+  }
+}
+function setCascadeSpeed(s){
+  playCascade.speed = s;
+  ["1","2","4"].forEach(k => {
+    const el = document.getElementById("csp-"+k);
+    if (el) el.classList.remove("active");
+  });
+  const activeEl = document.getElementById("csp-"+s);
+  if (activeEl) activeEl.classList.add("active");
+  if (playCascade.playing){ pauseCascade(); startCascade(); }
+}
+function highlightStage(stageNum){
+  const panelMap = {"1":"stage-1-panel","2":"stage-2-panel","3":"stage-3-panel","4":"stage-4-panel","5":"stage-4-panel","6":"stage-4-panel","7":"stage-7-panel","8":"stage-8-panel"};
+  // Remove existing highlights
+  for (let i = 1; i <= 8; i++){
+    const el = document.getElementById(panelMap[i]);
+    if (el) el.classList.remove("stage-highlight");
+  }
+  const el = document.getElementById(panelMap[stageNum]);
+  if (el){
+    el.classList.add("stage-highlight");
+    el.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+  const status = document.getElementById("cpb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    const labels = isES ? STAGE_LABELS_ES : STAGE_LABELS_EN;
+    status.textContent = stageNum + "/8 · " + labels[stageNum];
+  }
+}
+
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  function tryClick(attempt) {
+    const btn = document.querySelector('#cpb-play');
+    if (btn) {
+      const label = (btn.textContent || '').toLowerCase();
+      if (!label.includes('pause') && !label.includes('pausa')) btn.click();
+      return;
+    }
+    if (attempt < 20) setTimeout(() => tryClick(attempt + 1), 200);
+  }
+  if (document.readyState === 'complete') setTimeout(() => tryClick(0), 400);
+  else window.addEventListener('load', () => setTimeout(() => tryClick(0), 400));
+})();
+</script>
+
+</body>
+</html>

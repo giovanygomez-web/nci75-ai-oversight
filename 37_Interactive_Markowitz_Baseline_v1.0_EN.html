@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Markowitz Baseline Simulator · MVO Explained · Practicum Part 2</title>
+<style>
+:root{--ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;--lgray:#E2E8F0;--xlgray:#F1F5F9;--blue:#2563EB;--lblue:#DBEAFE;--teal:#0D9488;--lteal:#CCFBF1;--green:#15803D;--lgreen:#DCFCE7;--amber:#D97706;--lamber:#FEF3C7;--red:#B91C1C;--lred:#FEE2E2;--purple:#7E22CE;--lpurple:#F3E8FF;}
+*{box-sizing:border-box;}
+body{margin:0;padding:32px 32px 60px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#EEF2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.55;min-height:100vh;}
+.wrap{max-width:1400px;margin:0 auto;}
+
+.hero{background:linear-gradient(135deg,var(--ink) 0%,#334155 100%);color:var(--white);padding:30px 40px;border-radius:14px;margin-bottom:24px;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;top:-40%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(37,99,235,0.28) 0%,transparent 70%);}
+.hero-kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:8px;position:relative;}
+.hero h1{font-family:Georgia,serif;font-size:28px;font-weight:700;margin:0 0 8px;line-height:1.2;position:relative;}
+.hero p{font-size:14px;color:#CBD5E1;margin:0;max-width:1000px;position:relative;line-height:1.6;}
+
+.section{background:var(--white);border:1px solid var(--lgray);border-radius:12px;padding:24px 28px;margin-bottom:20px;}
+.section h2{font-family:Georgia,serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
+.section .lead{font-size:12px;color:var(--muted);font-style:italic;margin:0 0 16px;}
+.section .num-badge{display:inline-block;background:var(--blue);color:var(--white);font-family:Georgia,serif;font-weight:700;font-size:14px;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;margin-right:10px;vertical-align:middle;}
+
+.explain-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:start;}
+.explain-text{font-size:13.5px;color:var(--ink);}
+.explain-text p{margin:0 0 10px;}
+.explain-text b{color:var(--blue);}
+.explain-visual{background:var(--xlgray);border-radius:10px;padding:18px;border-left:4px solid var(--blue);}
+.explain-visual h4{font-family:Georgia,serif;font-size:14px;margin:0 0 10px;color:var(--ink);}
+.explain-visual ul{margin:0;padding-left:18px;font-size:12px;color:var(--muted);}
+.explain-visual ul li{padding:3px 0;}
+.explain-visual ul li b{color:var(--ink);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.data-table th{background:var(--xlgray);color:var(--muted);font-weight:700;text-align:left;padding:8px 10px;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;border-bottom:2px solid var(--lgray);}
+.data-table th.num{text-align:right;}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--lgray);font-family:ui-monospace,Menlo,monospace;}
+.data-table td.num{text-align:right;font-weight:700;color:var(--ink);}
+.data-table td.asset{font-family:Georgia,serif;font-weight:700;color:var(--ink);}
+.data-table td .asset-tag{display:inline-block;font-size:9px;color:var(--white);padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:0.5px;vertical-align:middle;}
+.data-table .spy-tag{background:var(--blue);}
+.data-table .agg-tag{background:var(--teal);}
+.data-table .dbc-tag{background:var(--amber);}
+.data-table .tb-tag{background:var(--muted);}
+
+.math-box{background:var(--xlgray);border-left:4px solid var(--purple);border-radius:8px;padding:18px 22px;margin:12px 0;font-family:Georgia,serif;}
+.math-box .eq{font-size:20px;font-weight:700;color:var(--ink);text-align:center;padding:10px 0;letter-spacing:0.5px;}
+.math-box .eq-note{font-size:11px;color:var(--muted);font-style:italic;text-align:center;margin-top:6px;}
+.math-box .constraint{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);background:var(--white);padding:6px 10px;border-radius:5px;margin:4px 0;text-align:center;}
+
+/* Chart container */
+.chart-wrap{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:14px 18px 10px;margin:12px 0;}
+.chart-wrap .chart-title{display:flex;justify-content:space-between;align-items:baseline;font-family:Georgia,serif;font-size:13px;color:var(--ink);margin-bottom:8px;}
+.chart-wrap .chart-title .sub{font-size:10px;color:var(--muted);font-style:italic;font-weight:400;}
+.chart-svg{display:block;width:100%;height:auto;}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;justify-content:center;font-size:11px;color:var(--muted);}
+.chart-legend .lg-item{display:flex;align-items:center;gap:6px;}
+.chart-legend .lg-swatch{display:inline-block;width:16px;height:3px;border-radius:2px;}
+
+/* Rolling window visualisation */
+.rolling-panel{background:linear-gradient(135deg,#F0F9FF 0%,var(--white) 100%);border:1px solid var(--lblue);border-left:4px solid var(--blue);border-radius:10px;padding:16px 20px;margin:12px 0;}
+.rolling-panel h4{font-family:Georgia,serif;font-size:14px;margin:0 0 6px;color:var(--ink);}
+.rolling-panel .rp-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:center;margin-top:12px;}
+.rolling-panel .rp-box{background:var(--white);border:1px solid var(--lgray);border-radius:6px;padding:10px 12px;text-align:center;}
+.rolling-panel .rp-lbl{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+.rolling-panel .rp-val{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--ink);margin-top:3px;}
+.rolling-panel .rp-arrow{font-size:20px;color:var(--amber);font-weight:700;font-family:Georgia,serif;}
+.rolling-panel .rp-note{font-size:11px;color:var(--muted);font-style:italic;text-align:center;margin-top:8px;}
+
+.mu-sigma-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:10px;}
+.mu-sigma-table th, .mu-sigma-table td{border:1px solid var(--lgray);padding:6px 8px;text-align:center;font-family:ui-monospace,Menlo,monospace;}
+.mu-sigma-table th{background:var(--xlgray);color:var(--muted);font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;}
+.mu-sigma-table td.corner{background:var(--xlgray);color:var(--muted);font-weight:700;}
+.mu-sigma-table .mu-cell{background:#F0F9FF;color:var(--ink);font-weight:700;}
+.mu-sigma-table .diag{background:#FEF3C7;font-weight:700;}
+
+.controls-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:20px;}
+.slider-card{background:var(--xlgray);border-radius:8px;padding:14px 16px;border-top:3px solid var(--blue);}
+.slider-card.risk{border-top-color:var(--red);grid-column:1/-1;background:linear-gradient(90deg,#FEE2E2 0%,var(--xlgray) 60%);}
+.slider-card .lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.slider-card .lbl .name{font-family:Georgia,serif;font-weight:700;font-size:13px;color:var(--ink);}
+.slider-card .lbl .val{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:13px;color:var(--blue);}
+.slider-card.risk .lbl .val{color:var(--red);}
+.slider-card input[type="range"]{width:100%;margin:0;}
+.slider-card .desc{font-size:10px;color:var(--muted);margin-top:6px;font-style:italic;}
+.slider-card .marker{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;}
+
+.reset-btn{background:var(--white);border:2px solid var(--blue);color:var(--blue);padding:10px 20px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;text-transform:uppercase;transition:all 0.15s;}
+.reset-btn:hover{background:var(--blue);color:var(--white);}
+
+.output-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.weight-viz{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:18px 22px;}
+.weight-viz h4{font-family:Georgia,serif;font-size:14px;margin:0 0 12px;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;}
+.weight-viz h4 .subtitle{font-size:10px;color:var(--muted);font-weight:400;font-style:italic;}
+.weight-row{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;margin-bottom:8px;}
+.wt-name{font-family:Georgia,serif;font-weight:700;font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px;}
+.wt-name .dot{display:inline-block;width:10px;height:10px;border-radius:50%;}
+.wt-name .dot.spy{background:var(--blue);}
+.wt-name .dot.agg{background:var(--teal);}
+.wt-name .dot.dbc{background:var(--amber);}
+.wt-name .dot.tb{background:var(--muted);}
+.wt-bar{background:var(--xlgray);border-radius:4px;height:22px;overflow:hidden;position:relative;}
+.wt-fill{height:100%;transition:width 0.25s ease;}
+.wt-fill.spy{background:var(--blue);}
+.wt-fill.agg{background:var(--teal);}
+.wt-fill.dbc{background:var(--amber);}
+.wt-fill.tb{background:var(--muted);}
+.wt-val{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:13px;text-align:right;color:var(--ink);}
+
+.pv-panel{background:linear-gradient(90deg,#F8FAFC 0%,#FFFFFF 100%);border:1px solid var(--lgray);border-left:4px solid var(--amber);border-radius:10px;padding:16px 22px;}
+.pv-panel h4{font-family:Georgia,serif;font-size:14px;margin:0 0 4px;color:var(--ink);}
+.pv-panel .pv-sub{font-size:10px;color:var(--muted);font-style:italic;margin:0 0 12px;}
+.pv-total{background:var(--white);border:1px solid var(--lgray);border-radius:6px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;}
+.pv-total .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;}
+.pv-total .val{font-family:Georgia,serif;font-size:22px;font-weight:700;color:var(--amber);}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.metric-card{background:var(--white);border:1px solid var(--lgray);border-radius:6px;padding:10px 12px;text-align:center;}
+.metric-card .m-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.metric-card .m-val{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--ink);margin-top:4px;}
+.metric-card .m-sub{font-size:9px;color:var(--muted);font-style:italic;margin-top:2px;}
+
+/* 2025 recommendation + outcome */
+.reco-hero{background:linear-gradient(135deg,var(--lamber) 0%,#FFF8E1 100%);border:2px solid var(--amber);border-radius:12px;padding:20px 26px;margin-bottom:16px;}
+.reco-hero .kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:2px;text-transform:uppercase;}
+.reco-hero h3{font-family:Georgia,serif;font-size:20px;margin:6px 0 4px;color:var(--ink);}
+.reco-hero p{font-size:12.5px;color:var(--ink);margin:0;}
+
+.reco-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:14px;}
+.outcome-panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:18px 22px;}
+.outcome-panel h4{font-family:Georgia,serif;font-size:14px;margin:0 0 4px;color:var(--ink);}
+.outcome-panel .op-sub{font-size:10px;color:var(--muted);font-style:italic;margin:0 0 12px;}
+.outcome-panel .op-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.outcome-panel .op-table th, .outcome-panel .op-table td{padding:6px 8px;border-bottom:1px solid var(--lgray);font-family:ui-monospace,Menlo,monospace;text-align:right;}
+.outcome-panel .op-table th{background:var(--xlgray);color:var(--muted);font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;text-align:right;}
+.outcome-panel .op-table th:first-child, .outcome-panel .op-table td:first-child{text-align:left;}
+.outcome-panel .op-table td.strategy{font-family:Georgia,serif;font-weight:700;color:var(--ink);}
+.outcome-panel .op-table td.pos{color:var(--green);font-weight:700;}
+.outcome-panel .op-table td.neg{color:var(--red);font-weight:700;}
+.outcome-panel .op-table tr.winner{background:var(--lgreen);}
+.outcome-panel .op-table tr.winner td{color:var(--green);}
+
+.verdict-box{background:linear-gradient(90deg,#F8FAFC 0%,var(--white) 100%);border:2px solid var(--purple);border-radius:10px;padding:16px 22px;margin-top:16px;}
+.verdict-box .lbl{font-size:10px;color:var(--purple);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.verdict-box h4{font-family:Georgia,serif;font-size:16px;margin:6px 0 4px;color:var(--ink);}
+.verdict-box p{font-size:12.5px;color:var(--ink);margin:0;line-height:1.55;}
+
+.bridge{background:linear-gradient(135deg,var(--lpurple) 0%,var(--white) 100%);border:1px solid var(--purple);border-left:4px solid var(--purple);border-radius:12px;padding:20px 26px;margin-top:20px;}
+.bridge h3{font-family:Georgia,serif;font-size:16px;margin:0 0 6px;color:var(--purple);}
+.bridge p{font-size:12.5px;color:var(--ink);margin:0 0 12px;line-height:1.55;}
+.bridge .next-links{display:flex;gap:10px;flex-wrap:wrap;}
+.bridge .next-link{background:var(--white);border:1px solid var(--purple);color:var(--purple);padding:8px 14px;border-radius:6px;font-size:11.5px;font-weight:700;text-decoration:none;transition:all 0.15s;}
+.bridge .next-link:hover{background:var(--purple);color:var(--white);}
+
+.foot{margin-top:26px;padding:18px 24px;background:var(--white);border:1px solid var(--lgray);border-radius:10px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;}
+.foot code{font-family:ui-monospace,Menlo,monospace;background:var(--xlgray);padding:1px 5px;border-radius:3px;font-size:10.5px;color:var(--ink);}
+
+/* Max-weight cap slider */
+.slider-card.cap{border-top-color:var(--amber);background:linear-gradient(90deg,#FEF3C7 0%,var(--xlgray) 60%);}
+.slider-card.cap .lbl .val{color:var(--amber);}
+
+/* Corner solutions explanation */
+.corner-note{background:linear-gradient(135deg,#FEF3C7 0%,var(--white) 100%);border:1px solid var(--amber);border-left:4px solid var(--amber);border-radius:10px;padding:16px 22px;margin:12px 0;}
+.corner-note h4{font-family:Georgia,serif;font-size:14px;margin:0 0 6px;color:var(--amber);}
+.corner-note p{font-size:12px;color:var(--ink);margin:0 0 8px;line-height:1.55;}
+.corner-note p b{color:var(--amber);}
+.corner-note .tip{background:var(--white);border:1px dashed var(--amber);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--ink);font-style:italic;margin-top:8px;}
+
+/* Playback controls */
+.playback{background:var(--ink);color:var(--white);border-radius:10px;padding:14px 20px;margin:12px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.playback .pb-lbl{font-size:10px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.playback button{background:var(--white);border:none;color:var(--ink);padding:8px 16px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.playback button:hover{background:var(--amber);color:var(--white);}
+.playback button.primary{background:var(--amber);color:var(--white);}
+.playback button.primary:hover{background:var(--white);color:var(--amber);}
+.playback button:disabled{opacity:0.4;cursor:not-allowed;}
+.playback .pb-month{flex:1;font-family:Georgia,serif;font-size:13px;color:var(--white);text-align:right;}
+.playback .pb-month .month-val{color:var(--amber);font-weight:700;}
+.playback .pb-speed{display:flex;gap:4px;}
+.playback .pb-speed button{padding:6px 10px;font-size:10px;}
+.playback .pb-speed button.active{background:var(--amber);color:var(--white);}
+
+
+/* Betas + Frontier */
+.beta-panel{background:linear-gradient(135deg,#F3E8FF 0%,var(--white) 100%);border:1px solid var(--purple);border-left:4px solid var(--purple);border-radius:10px;padding:16px 22px;margin:12px 0;}
+.beta-panel h4{font-family:Georgia,serif;font-size:14px;margin:0 0 6px;color:var(--purple);}
+.beta-panel p{font-size:12px;color:var(--ink);margin:0 0 10px;line-height:1.55;}
+.beta-panel .beta-formula{background:var(--white);border:1px dashed var(--purple);border-radius:6px;padding:8px 14px;font-family:Georgia,serif;font-size:14px;text-align:center;color:var(--ink);margin:8px 0;}
+.beta-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+.beta-table th{background:var(--lpurple);color:var(--purple);font-weight:700;text-align:left;padding:8px 10px;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;}
+.beta-table th.num{text-align:right;}
+.beta-table td{padding:8px 10px;border-bottom:1px solid var(--lgray);font-family:ui-monospace,Menlo,monospace;}
+.beta-table td.num{text-align:right;font-weight:700;}
+.beta-table td.asset{font-family:Georgia,serif;font-weight:700;color:var(--ink);}
+.beta-table td.beta-val{color:var(--purple);font-weight:700;}
+.beta-table td.beta-interp{font-family:inherit;font-style:italic;color:var(--muted);font-size:11px;}
+
+/* Frontier chart */
+.frontier-panel{background:var(--white);border:1px solid var(--lgray);border-radius:12px;padding:20px 24px;margin:16px 0;}
+.frontier-panel h4{font-family:Georgia,serif;font-size:16px;margin:0 0 6px;color:var(--ink);}
+.frontier-panel .fp-sub{font-size:11px;color:var(--muted);font-style:italic;margin:0 0 14px;}
+.frontier-svg{display:block;width:100%;height:auto;}
+.frontier-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;justify-content:center;font-size:11px;color:var(--muted);}
+.frontier-legend .fl-item{display:flex;align-items:center;gap:6px;}
+.frontier-legend .fl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;}
+.frontier-legend .fl-line{display:inline-block;width:20px;height:2px;}
+
+
+/* Dashed legend swatch (for 2025 chart benchmarks) */
+.chart-legend .lg-swatch.dashed{background:transparent !important;border-top:3px dashed;height:0;border-radius:0;position:relative;top:6px;}
+
+
+/* Frontier SVG fixed aspect ratio · fix invisible render bug */
+.frontier-svg{display:block;width:100%;aspect-ratio:1200/380;height:auto;}
+/* Frontier playback controls (reuse .playback but tint different) */
+.playback.frontier{background:#7E22CE;}
+.playback.frontier .pb-lbl{color:#FCD34D;}
+
+
+.playback.historical{background:#15803D;}
+.playback.historical .pb-lbl{color:#FCD34D;}
+
+
+/* Investor-profiles playback (Section 5) */
+.playback.profiles{background:#1E40AF;color:#FCD34D;}
+.playback.profiles .pb-status .val{color:white;font-weight:700;font-family:Georgia,serif;}
+.playback.reveal{background:#B08D57;color:white;}
+.playback.reveal .pb-status .val{color:white;font-weight:700;font-family:Georgia,serif;}
+/* Weight bars smooth transition for reveal */
+.wt-fill{transition:width 0.8s cubic-bezier(0.4,0,0.2,1) !important;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-kicker">MARKOWITZ BASELINE SIMULATOR · v1.0 · FILE #37</div>
+  <h1>The Markowitz Mean-Variance Optimiser · from 15 years of history to a 2025 recommendation</h1>
+  <p>The mathematical baseline on which the entire AI Human Oversight Framework sits. This simulator shows the full journey: fifteen years of historical returns (2010-2024) feed the model's inputs, the model computes an optimal portfolio for 2025, and we compare that theoretical recommendation with what actually happened in 2025 using a $1,000,000 starting portfolio.</p>
+</div>
+
+<!-- Section 1: What is Markowitz? (brief) -->
+<div class="section">
+  <h2><span class="num-badge">1</span>What is Markowitz Mean-Variance Optimisation?</h2>
+  <p class="lead">Nobel-prize idea, still the standard building block of quantitative asset allocation.</p>
+  <div class="explain-grid">
+    <div class="explain-text">
+      <p>Harry Markowitz (1952) proposed that a rational investor should evaluate <b>the portfolio as a whole</b>, balancing <b>expected return</b> against <b>variance</b>. The optimiser finds the weight vector that maximises expected return for a chosen level of risk aversion.</p>
+      <p>The output is not a magic winning portfolio. It is the mathematically consistent starting point on which any subsequent overlay (macro judgement, AI model, tactical adjustment) can be layered. In this practicum, the AI overlay is that layer.</p>
+    </div>
+    <div class="explain-visual">
+      <h4>Three moving parts</h4>
+      <ul>
+        <li><b>μ</b> · vector of expected returns per asset</li>
+        <li><b>Σ</b> · covariance matrix of asset returns</li>
+        <li><b>λ</b> · risk-aversion parameter</li>
+      </ul>
+      <h4 style="margin-top:14px;">Output</h4>
+      <ul>
+        <li><b>w</b> · vector of optimal weights (summing to 100 %)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Historical trend 2010-2024 -->
+<div class="section">
+  <h2><span class="num-badge">2</span>Historical performance of the four assets · 2010-2024</h2>
+  <p class="lead">Fifteen years of monthly returns, shown as normalised equity indices (each starts at 100 in January 2010). This is the raw material Markowitz consumes.</p>
+  <div class="chart-wrap">
+    <div class="chart-title">
+      <span>Cumulative equity index · Jan 2010 = 100</span>
+      <span class="sub">simulated realistic path calibrated to published annual total returns</span>
+    </div>
+    <div class="playback historical">
+  <span class="pb-lbl">Play history · trace 15 years month by month</span>
+  <button id="hpb-play" class="primary" onclick="togglePlayHistorical()">▶ Play</button>
+  <button onclick="resetHistorical()">↺ Reset</button>
+  <div class="pb-speed">
+    <button onclick="setHistSpeed(1)" id="hsp-1" class="active">1×</button>
+    <button onclick="setHistSpeed(2)" id="hsp-2">2×</button>
+    <button onclick="setHistSpeed(4)" id="hsp-4">4×</button>
+  </div>
+  <div class="pb-month">Current: <span class="month-val" id="hpb-status">complete · press ↺ then ▶</span></div>
+</div>
+    <svg class="chart-svg" id="chart-hist" viewBox="0 0 1200 360" preserveAspectRatio="none"></svg>
+    <div class="chart-legend">
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--blue);"></span>SPY · U.S. equity</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--teal);"></span>AGG · U.S. bonds</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--amber);"></span>DBC · commodities</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--muted);"></span>TB3MS · cash</span>
+    </div>
+  </div>
+  <p style="font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;">Values shown are simulated but calibrated so that annual total returns approximate published historical figures. Real production runs use exact FRED and Yahoo Finance data.</p>
+</div>
+
+<!-- Section 3: How rolling data becomes μ and Σ -->
+<div class="section">
+  <h2><span class="num-badge">3</span>How the historical data becomes the model inputs</h2>
+  <p class="lead">Markowitz consumes two things: a vector of expected returns μ and a covariance matrix Σ. Both are estimated from the 180 monthly returns shown above.</p>
+
+  <div class="rolling-panel">
+    <h4>The estimation flow</h4>
+    <div class="rp-flow">
+      <div class="rp-box">
+        <div class="rp-lbl">Input</div>
+        <div class="rp-val">180 monthly returns per asset</div>
+      </div>
+      <div class="rp-arrow">→</div>
+      <div class="rp-box">
+        <div class="rp-lbl">Compute</div>
+        <div class="rp-val">sample mean · sample covariance</div>
+      </div>
+      <div class="rp-arrow">→</div>
+      <div class="rp-box">
+        <div class="rp-lbl">Output</div>
+        <div class="rp-val">μ (4-vector) · Σ (4×4 matrix)</div>
+      </div>
+    </div>
+    <p class="rp-note">In production, this is a rolling window (last 60 months) so the estimates evolve as new data arrives. Here we use the entire history for a single recommendation.</p>
+  </div>
+
+  <h4 style="font-family:Georgia,serif;font-size:13px;margin:16px 0 6px;color:var(--ink);">μ · historical monthly mean return per asset</h4>
+  <table class="mu-sigma-table">
+    <thead><tr><th>Asset</th><th>SPY</th><th>AGG</th><th>DBC</th><th>TB3MS</th></tr></thead>
+    <tbody><tr>
+      <td class="corner">monthly mean μ</td>
+      <td class="mu-cell" id="mu-hist-spy">—</td>
+      <td class="mu-cell" id="mu-hist-agg">—</td>
+      <td class="mu-cell" id="mu-hist-dbc">—</td>
+      <td class="mu-cell" id="mu-hist-tb">—</td>
+    </tr></tbody>
+  </table>
+
+  <h4 style="font-family:Georgia,serif;font-size:13px;margin:14px 0 6px;color:var(--ink);">Σ · covariance matrix (diagonal shaded · variance of each asset)</h4>
+  <table class="mu-sigma-table">
+    <thead><tr><th></th><th>SPY</th><th>AGG</th><th>DBC</th><th>TB3MS</th></tr></thead>
+    <tbody id="cov-tbody"></tbody>
+  </table>
+  <p style="font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;">These are the actual μ and Σ computed from the 180 historical monthly returns simulated above. They are the direct inputs to the Markowitz equation below.</p>
+</div>
+
+
+<div class="beta-panel">
+  <h4>β · Beta coefficients · asset systematic risk relative to the market</h4>
+  <p>Beta is the classical MBA measure of how much an asset moves when the market moves. SPY is the market proxy here, so it has β = 1.00 by definition. Assets with β &gt; 1 amplify market swings, β &lt; 1 dampen them, β near zero move independently.</p>
+  <div class="beta-formula">β<sub>i</sub> = Cov(r<sub>i</sub>, r<sub>market</sub>) / Var(r<sub>market</sub>)</div>
+  <table class="beta-table">
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th class="num">β vs SPY</th>
+        <th>Interpretation</th>
+      </tr>
+    </thead>
+    <tbody id="betas-tbody"></tbody>
+  </table>
+  <p style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic;">Betas computed from the 180 monthly historical returns simulated above. In production, betas would be rolling estimates that evolve over time.</p>
+</div>
+
+<!-- Section 4: The equation -->
+<div class="section">
+  <h2><span class="num-badge">4</span>The equation Markowitz solves</h2>
+  <div class="math-box">
+    <div class="eq">max<sub>w</sub> &nbsp; μ<sup>T</sup>·w &nbsp; − &nbsp; (λ / 2) · w<sup>T</sup>·Σ·w</div>
+    <div class="eq-note">expected portfolio return minus half of risk-aversion times portfolio variance</div>
+    <div class="constraint">subject to &nbsp; Σᵢ wᵢ = 1 &nbsp; (weights sum to 100 %) &nbsp; and &nbsp; wᵢ ≥ 0 &nbsp; (long-only)</div>
+  </div>
+  <p style="font-size:12px;color:var(--muted);font-style:italic;margin-top:8px;">Analytical solution (unconstrained): <code style="background:var(--xlgray);padding:1px 5px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;">w = (1/λ) · Σ⁻¹ · μ</code>. With long-only and sum-to-one, we normalise and clip.</p>
+</div>
+
+<!-- Section 5: Interactive controls -->
+<div class="section">
+  <h2><span class="num-badge">5</span>Adjust the inputs · λ risk-aversion and expected-return override</h2>
+  <p class="lead">By default, μ comes from the historical data. If you disagree with what the past says, override each asset's expected return manually. Σ remains estimated from history.</p>
+  <div class="playback profiles" style="margin-bottom:16px;">
+  <span class="pb-lbl">Play profiles · cycle through 5 investor types</span>
+  <button id="ppb-play" class="primary" onclick="togglePlayProfiles()">▶ Play</button>
+  <button onclick="resetProfiles()">↺ Reset</button>
+  <div class="pb-speed">
+    <button onclick="setProfilesSpeed(1)" id="psp-1" class="active">1×</button>
+    <button onclick="setProfilesSpeed(2)" id="psp-2">2×</button>
+  </div>
+  <div class="pb-status">Profile: <span class="val" id="ppb-status">— (press Play)</span></div>
+</div>
+  <div class="controls-grid">
+    <div class="slider-card">
+      <div class="lbl"><span class="name">SPY expected return (monthly)</span><span class="val" id="v-mu-spy">—</span></div>
+      <input type="range" id="mu-spy" min="-0.5" max="2.0" step="0.05" value="0.80">
+      <div class="marker"><span>−0.5 %</span><span>2.0 %</span></div>
+      <div class="desc">Historical default is set from the 180 monthly returns above.</div>
+    </div>
+    <div class="slider-card">
+      <div class="lbl"><span class="name">AGG expected return (monthly)</span><span class="val" id="v-mu-agg">—</span></div>
+      <input type="range" id="mu-agg" min="-0.3" max="1.0" step="0.05" value="0.30">
+      <div class="marker"><span>−0.3 %</span><span>1.0 %</span></div>
+      <div class="desc">Higher bond return shifts weight into AGG.</div>
+    </div>
+    <div class="slider-card">
+      <div class="lbl"><span class="name">DBC expected return (monthly)</span><span class="val" id="v-mu-dbc">—</span></div>
+      <input type="range" id="mu-dbc" min="-0.5" max="1.5" step="0.05" value="0.10">
+      <div class="marker"><span>−0.5 %</span><span>1.5 %</span></div>
+      <div class="desc">Commodities are volatile; small changes shift the weight.</div>
+    </div>
+    <div class="slider-card">
+      <div class="lbl"><span class="name">TB3MS expected return (monthly)</span><span class="val" id="v-mu-tb">—</span></div>
+      <input type="range" id="mu-tb" min="0" max="0.5" step="0.02" value="0.15">
+      <div class="marker"><span>0 %</span><span>0.5 %</span></div>
+      <div class="desc">Higher cash rate makes cash more attractive.</div>
+    </div>
+    <div class="slider-card risk">
+      <div class="lbl"><span class="name">λ · risk aversion</span><span class="val" id="v-lambda">5.0</span></div>
+      <input type="range" id="lambda" min="1" max="20" step="0.5" value="5">
+      <div class="marker"><span>1 (aggressive)</span><span>20 (very conservative)</span></div>
+      <div class="desc">Higher λ pulls the portfolio toward lower-variance assets.</div>
+    </div>
+    <div class="slider-card cap">
+      <div class="lbl"><span class="name">Max weight per asset (cap)</span><span class="val" id="v-maxw">40 %</span></div>
+      <input type="range" id="maxw" min="25" max="100" step="5" value="40">
+      <div class="marker"><span>25 %</span><span>100 % (no cap)</span></div>
+      <div class="desc">Default 40 % · standard industry cap for diversified portfolios. Push to 100 % to see the corner-solutions problem.</div>
+    </div>
+
+  </div>
+  <div style="text-align:center;">
+    <button class="reset-btn" onclick="resetDefaults()">Reset to historical estimates</button>
+  </div>
+</div>
+
+<!-- Section 6: Recommendation for 2025 -->
+<div class="section">
+  <div class="reco-hero">
+    <div class="kicker">Recommendation for 2025</div>
+    <h3>The Markowitz portfolio for the year ahead</h3>
+    <p>Using the μ and Σ estimated from the 15 years of history above and the risk-aversion λ selected in the sliders, the optimiser returns the following portfolio composition. This is what a Markowitz-based advisor would recommend at the start of 2025.</p>
+  </div>
+
+  <div class="playback reveal" style="margin-bottom:14px;">
+  <span class="pb-lbl">Play reveal · animate the recommendation from scratch</span>
+  <button id="rpb-play" class="primary" onclick="playReveal()">▶ Reveal</button>
+  <div class="pb-status">Effect: <span class="val">bars and dollar amounts fill in over 2 seconds</span></div>
+</div>
+  <div class="output-grid">
+    <div class="weight-viz">
+      <h4>Recommended weights for 2025 <span class="subtitle">as percentages</span></h4>
+      <div class="weight-row">
+        <div class="wt-name"><span class="dot spy"></span>SPY</div>
+        <div class="wt-bar"><div class="wt-fill spy" id="bar-spy" style="width:0%"></div></div>
+        <div class="wt-val" id="wt-spy">0.0 %</div>
+      </div>
+      <div class="weight-row">
+        <div class="wt-name"><span class="dot agg"></span>AGG</div>
+        <div class="wt-bar"><div class="wt-fill agg" id="bar-agg" style="width:0%"></div></div>
+        <div class="wt-val" id="wt-agg">0.0 %</div>
+      </div>
+      <div class="weight-row">
+        <div class="wt-name"><span class="dot dbc"></span>DBC</div>
+        <div class="wt-bar"><div class="wt-fill dbc" id="bar-dbc" style="width:0%"></div></div>
+        <div class="wt-val" id="wt-dbc">0.0 %</div>
+      </div>
+      <div class="weight-row">
+        <div class="wt-name"><span class="dot tb"></span>TB3MS</div>
+        <div class="wt-bar"><div class="wt-fill tb" id="bar-tb" style="width:0%"></div></div>
+        <div class="wt-val" id="wt-tb">0.0 %</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="m-lbl">Expected return</div>
+          <div class="m-val" id="m-ret">—</div>
+          <div class="m-sub">monthly · from μ, Σ</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-lbl">Expected volatility</div>
+          <div class="m-val" id="m-vol">—</div>
+          <div class="m-sub">monthly · from Σ</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-lbl">Expected Sharpe</div>
+          <div class="m-val" id="m-sharpe">—</div>
+          <div class="m-sub">annualised · rf = 0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pv-panel">
+      <h4>$1,000,000 initial allocation · Jan 2025</h4>
+      <p class="pv-sub">what the recommended weights mean in dollars</p>
+      <div class="pv-total">
+        <span class="lbl">Total invested</span>
+        <span class="val" id="pv-total">$1,000,000</span>
+      </div>
+      <table class="data-table" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th>Asset</th>
+            <th class="num">Weight</th>
+            <th class="num">$ allocated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="asset"><span class="asset-tag spy-tag">SPY</span>Stocks</td>
+            <td class="num" id="pv-wt-spy">0.0 %</td>
+            <td class="num" id="pv-dollar-spy">$0</td>
+          </tr>
+          <tr>
+            <td class="asset"><span class="asset-tag agg-tag">AGG</span>Bonds</td>
+            <td class="num" id="pv-wt-agg">0.0 %</td>
+            <td class="num" id="pv-dollar-agg">$0</td>
+          </tr>
+          <tr>
+            <td class="asset"><span class="asset-tag dbc-tag">DBC</span>Commodities</td>
+            <td class="num" id="pv-wt-dbc">0.0 %</td>
+            <td class="num" id="pv-dollar-dbc">$0</td>
+          </tr>
+          <tr>
+            <td class="asset"><span class="asset-tag tb-tag">TB3MS</span>Cash</td>
+            <td class="num" id="pv-wt-tb">0.0 %</td>
+            <td class="num" id="pv-dollar-tb">$0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="frontier-panel">
+  <h4>The Efficient Frontier · every optimal portfolio at once</h4>
+  <p class="fp-sub">The curve traces out all MVO-optimal portfolios as risk aversion λ varies. Your current recommendation is highlighted. Anything below the curve is inefficient (you could get more return at the same risk, or less risk at the same return).</p>
+  <div class="playback frontier">
+  <span class="pb-lbl">Play frontier · trace the curve λ by λ</span>
+  <button id="fpb-play" class="primary" onclick="togglePlayFrontier()">▶ Play</button>
+  <button onclick="resetFrontier()">↺ Reset</button>
+  <div class="pb-speed">
+    <button onclick="setFrontierSpeed(1)" id="fsp-1" class="active">1×</button>
+    <button onclick="setFrontierSpeed(2)" id="fsp-2">2×</button>
+    <button onclick="setFrontierSpeed(4)" id="fsp-4">4×</button>
+  </div>
+  <div class="pb-month">Curve tracing: <span class="month-val" id="fpb-status">complete · press ↺ then ▶</span></div>
+</div>
+  <svg class="frontier-svg" id="chart-frontier" viewBox="0 0 1200 380" preserveAspectRatio="none"></svg>
+  <div class="frontier-legend">
+    <span class="fl-item"><span class="fl-line" style="background:#15803D;height:3px;"></span>Efficient frontier · green upper (A → B)</span>
+    <span class="fl-item"><span class="fl-line" style="background:#B91C1C;height:3px;"></span>Inefficient portfolios · red lower (A → C)</span>
+    <span class="fl-item"><span class="fl-dot" style="background:#B0BEC5;"></span>Random long-only portfolios (cloud)</span>
+    <span class="fl-item"><span class="fl-dot" style="background:var(--amber);width:14px;height:14px;"></span>Your current MVO recommendation</span>
+    <span class="fl-item"><span class="fl-dot" style="background:var(--blue);"></span>SPY</span>
+    <span class="fl-item"><span class="fl-dot" style="background:var(--teal);"></span>AGG</span>
+    <span class="fl-item"><span class="fl-dot" style="background:#EA580C;"></span>DBC</span>
+    <span class="fl-item"><span class="fl-dot" style="background:var(--muted);"></span>TB3MS</span>
+    <span class="fl-item"><span class="fl-dot" style="background:var(--green);"></span>60/40 Vanguard</span>
+    <span class="fl-item"><span class="fl-dot" style="background:#7E22CE;"></span>1/N</span>
+  </div>
+  <p style="font-size:11.5px;color:var(--ink);margin-top:12px;">Move the λ slider above · you will see your recommendation slide along the frontier. Low λ pushes it to the upper-right (more risk, more return). High λ pushes it to the lower-left (less risk, less return). The single assets and mixed benchmarks (1/N, 60/40) rarely sit exactly on the frontier · they are dominated by some optimal combination.</p>
+</div>
+
+<!-- Market benchmark explainer -->
+<div class="corner-note" style="border-left-color:var(--green);background:linear-gradient(135deg,#DCFCE7 0%,var(--white) 100%);">
+  <h4 style="color:var(--green);">What is a market benchmark, and why does it matter?</h4>
+  <p>A market benchmark is a reference portfolio against which any strategy is measured. The classic MBA-textbook benchmark is the <b>60/40 portfolio</b>: 60% in stocks (like SPY) and 40% in bonds (like AGG). Vanguard sells this exact allocation as the <b>VBIAX Balanced Index Fund</b> at a cost of 0.07% per year · almost free.</p>
+  <p>The benchmark answers the toughest question in portfolio management: <b>is my strategy actually adding value, or would I do just as well by buying a passive 60/40 index fund and going home?</b> If the MVO recommendation cannot beat 60/40 in 2025, then all the estimation work was for nothing · a client could have paid Vanguard 0.07% and got a similar or better result.</p>
+  <div class="tip" style="border-color:var(--green);">The green dashed line in the chart below shows the 60/40 Vanguard-style benchmark applied to 2025. Compare it against the MVO recommendation to see whether the model added real value.</div>
+</div>
+
+<!-- Section 7: Recommendation vs actual 2025 outcome -->
+<div class="section">
+  <h2><span class="num-badge">7</span>What actually happened in 2025 · recommendation vs reality</h2>
+  <p class="lead">The $1M portfolio built with the Markowitz recommendation is now run against the actual monthly returns of 2025. Compared alongside: equal-weight 1/N baseline and each asset held individually.</p>
+
+  
+<div class="playback">
+  <span class="pb-lbl">Play 2025 · month by month</span>
+  <button id="pb-play" class="primary" onclick="togglePlay()">▶ Play</button>
+  <button id="pb-step" onclick="stepMonth()">Step ▶</button>
+  <button id="pb-reset" onclick="resetPlayback()">↺ Reset</button>
+  <div class="pb-speed">
+    <button onclick="setSpeed(1)" id="sp-1" class="active">1×</button>
+    <button onclick="setSpeed(2)" id="sp-2">2×</button>
+    <button onclick="setSpeed(4)" id="sp-4">4×</button>
+  </div>
+  <div class="pb-month">Current month: <span class="month-val" id="pb-month-label">— (press Play)</span></div>
+</div>
+
+<div class="chart-wrap">
+    <div class="chart-title">
+      <span>Portfolio value trajectory during 2025 · starting from $1,000,000</span>
+      <span class="sub">Jan 2025 to Dec 2025 · monthly rebalance held constant at initial weights</span>
+    </div>
+    <svg class="chart-svg" id="chart-2025" viewBox="0 0 1200 320" preserveAspectRatio="none"></svg>
+    <div class="chart-legend">
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--amber);height:4px;"></span>MVO recommendation (solid thick · this simulator)</span>
+      <span class="lg-item"><span class="lg-swatch dashed" style="border-color:var(--green);width:18px;"></span>60/40 benchmark (dashed · Vanguard-style)</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--purple);"></span>1/N equal weight (solid · baseline)</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--blue);"></span>SPY only</span>
+      <span class="lg-item"><span class="lg-swatch" style="background:var(--teal);"></span>AGG only</span>
+      <span class="lg-item"><span class="lg-swatch dashed" style="border-color:#EA580C;width:18px;"></span>DBC only (dashed to distinguish from MVO amber)</span>
+    </div>
+    <p style="font-size:10.5px;color:var(--muted);font-style:italic;margin-top:6px;text-align:center;">Dashed lines identify comparison benchmarks (60/40 Vanguard) or overlapping-colour cases (DBC vs MVO amber).</p>
+  </div>
+
+  <div class="outcome-panel" style="margin-top:14px;">
+    <h4>2025 outcome table · $1,000,000 starting capital</h4>
+    <p class="op-sub">final value at 31 December 2025 · full-year return · maximum drawdown during the year</p>
+    <table class="op-table">
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Final value</th>
+          <th>2025 return</th>
+          <th>Max drawdown</th>
+        </tr>
+      </thead>
+      <tbody id="outcome-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="verdict-box">
+    <div class="lbl">The honest read</div>
+    <h4 id="verdict-title">—</h4>
+    <p id="verdict-body">—</p>
+  </div>
+</div>
+
+<!-- Bridge -->
+<div class="bridge">
+  <h3>What happens next · the AI overlay enters</h3>
+  <p>The Markowitz recommendation above is the <b>baseline</b>. The AI Human Oversight Framework then applies a bounded overlay that can move each weight by up to ±10 percentage points, informed by current macroeconomic conditions and interpretable via SHAP attribution. The bound is what keeps the human in control.</p>
+  <div class="next-links">
+    <a class="next-link" href="38_Interactive_Simulator_v1.0_EN.html">▸ Open #38 · AI overlay simulator</a>
+    <a class="next-link" href="41_Interactive_AI_Decision_Cascade_v1.0_EN.html">▸ Open #41 · AI decision cascade</a>
+    <a class="next-link" href="42_Interactive_Scenario_Playback_v1.0_EN.html">▸ Open #42 · Scenario playback</a>
+  </div>
+</div>
+
+<!-- Foot -->
+<div class="foot">
+  Markowitz Baseline Simulator v1.0 · Practicum Part 2 · MSCDAD_A · National College of Ireland · Giovany Gomez Molina (x23255927) · Pre-Registration v1.0 (13-Jun-2026) governs the empirical stack this simulator sits on.
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// HISTORICAL DATA · monthly returns 2010-2025 (192 months)
+// Realistic annual returns per year, monthly noise via seeded PRNG
+// ============================================================
+const YEARS = Array.from({length: 16}, (_, i) => 2010 + i);
+const N_HIST_YEARS = 15;
+const N_TOTAL_YEARS = 16;
+const N_HIST_MONTHS = N_HIST_YEARS * 12;
+const N_TOTAL_MONTHS = N_TOTAL_YEARS * 12;
+
+const ANNUAL_RETURNS = {
+  spy: [0.150, 0.020, 0.160, 0.320, 0.140, 0.014, 0.120, 0.220, -0.040, 0.310, 0.180, 0.280, -0.180, 0.260, 0.250, 0.150],
+  agg: [0.065, 0.078, 0.042, -0.020, 0.060, 0.005, 0.026, 0.035, 0.000, 0.087, 0.075, -0.015, -0.130, 0.055, 0.015, 0.040],
+  dbc: [0.120, -0.010, 0.040, -0.080, -0.250, -0.250, 0.190, 0.040, -0.120, 0.090, -0.080, 0.350, 0.240, -0.120, 0.040, -0.030],
+  tb:  [0.0010, 0.0005, 0.0008, 0.0005, 0.0003, 0.0002, 0.0030, 0.0090, 0.0190, 0.0210, 0.0035, 0.0005, 0.0200, 0.0490, 0.0520, 0.0450]
+};
+
+const MONTHLY_VOL = {spy: 0.043, agg: 0.011, dbc: 0.052, tb: 0.0005};
+
+function seedRand(seed){
+  return function(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+}
+function normalRand(rng){
+  const u = rng() || 0.0001;
+  const v = rng() || 0.0001;
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function generateMonthlyReturns(){
+  const rets = {spy: [], agg: [], dbc: [], tb: []};
+  const seeds = {spy: 42, agg: 7, dbc: 13, tb: 3};
+  for (const asset of ['spy','agg','dbc','tb']){
+    const rng = seedRand(seeds[asset]);
+    for (let y = 0; y < N_TOTAL_YEARS; y++){
+      const annualRet = ANNUAL_RETURNS[asset][y];
+      const monthlyMean = Math.pow(1 + annualRet, 1/12) - 1;
+      const monthlyVol = MONTHLY_VOL[asset];
+      const rawRets = [];
+      for (let m = 0; m < 12; m++){
+        rawRets.push(monthlyMean + monthlyVol * normalRand(rng));
+      }
+      const compound = rawRets.reduce((p, r) => p * (1 + r), 1);
+      const scale = Math.pow((1 + annualRet) / compound, 1/12);
+      for (let m = 0; m < 12; m++){
+        rets[asset].push((1 + rawRets[m]) * scale - 1);
+      }
+    }
+  }
+  return rets;
+}
+
+const RETURNS = generateMonthlyReturns();
+
+function cumEquity(monthlyReturns, initial=100){
+  const eq = [initial];
+  for (const r of monthlyReturns) eq.push(eq[eq.length-1] * (1 + r));
+  return eq;
+}
+
+const EQUITY = {
+  spy: cumEquity(RETURNS.spy),
+  agg: cumEquity(RETURNS.agg),
+  dbc: cumEquity(RETURNS.dbc),
+  tb:  cumEquity(RETURNS.tb),
+};
+
+// ============================================================
+// MEAN/COV FROM HISTORICAL SLICE
+// ============================================================
+const ASSETS = ['spy','agg','dbc','tb'];
+
+function computeMeanCov(returnsSlice){
+  const n = returnsSlice.spy.length;
+  const mu = ASSETS.map(a => returnsSlice[a].reduce((s,x)=>s+x,0) / n);
+  const cov = Array.from({length:4}, () => Array(4).fill(0));
+  for (let i=0; i<4; i++){
+    for (let j=0; j<4; j++){
+      let s = 0;
+      for (let k=0; k<n; k++){
+        s += (returnsSlice[ASSETS[i]][k] - mu[i]) * (returnsSlice[ASSETS[j]][k] - mu[j]);
+      }
+      cov[i][j] = s / (n-1);
+    }
+  }
+  return {mu, cov};
+}
+
+function historicalMeanCov(){
+  const slice = {
+    spy: RETURNS.spy.slice(0, N_HIST_MONTHS),
+    agg: RETURNS.agg.slice(0, N_HIST_MONTHS),
+    dbc: RETURNS.dbc.slice(0, N_HIST_MONTHS),
+    tb:  RETURNS.tb.slice(0,  N_HIST_MONTHS),
+  };
+  return computeMeanCov(slice);
+}
+
+const HIST = historicalMeanCov();
+
+// ============================================================
+// MATRIX INVERSION + MVO
+// ============================================================
+function invertMatrix(M){
+  const n = M.length;
+  const aug = M.map((row, i) => [
+    ...row.slice(),
+    ...Array.from({length: n}, (_, j) => i === j ? 1 : 0)
+  ]);
+  for (let i=0; i<n; i++){
+    let maxRow = i;
+    for (let k=i+1; k<n; k++) if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k;
+    [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
+    const pivot = aug[i][i];
+    if (Math.abs(pivot) < 1e-12) return null;
+    for (let j=0; j<2*n; j++) aug[i][j] /= pivot;
+    for (let k=0; k<n; k++){
+      if (k === i) continue;
+      const f = aug[k][i];
+      for (let j=0; j<2*n; j++) aug[k][j] -= f * aug[i][j];
+    }
+  }
+  return aug.map(row => row.slice(n));
+}
+function matVec(M, v){ return M.map(row => row.reduce((s,x,j) => s + x*v[j], 0)); }
+
+function mvoWeights(mu, cov, lambda){
+  const invC = invertMatrix(cov);
+  if (!invC) return [0.25, 0.25, 0.25, 0.25];
+  const wRaw = matVec(invC, mu).map(x => x / lambda);
+  const wClip = wRaw.map(x => Math.max(0, x));
+  const total = wClip.reduce((s,x)=>s+x, 0);
+  if (total < 1e-9) return [0.25, 0.25, 0.25, 0.25];
+  return wClip.map(x => x / total);
+}
+function portRet(w, mu){ return w.reduce((s, wi, i) => s + wi * mu[i], 0); }
+function portVar(w, cov){
+  let v = 0;
+  for (let i=0; i<w.length; i++)
+    for (let j=0; j<w.length; j++)
+      v += w[i]*w[j]*cov[i][j];
+  return v;
+}
+
+
+// ============================================================
+// MAX-WEIGHT CAP (iterative enforcement)
+// ============================================================
+function applyMaxWeightCap(w, maxW){
+  if (maxW >= 0.99) return w;  // no cap
+  let weights = w.slice();
+  for (let iter = 0; iter < 20; iter++){
+    let capped = false;
+    let excess = 0;
+    for (let i = 0; i < weights.length; i++){
+      if (weights[i] > maxW){
+        excess += weights[i] - maxW;
+        weights[i] = maxW;
+        capped = true;
+      }
+    }
+    if (!capped) break;
+    // Redistribute excess proportionally to non-capped weights
+    const nonCappedSum = weights.reduce((s, x) => s + (x < maxW ? x : 0), 0);
+    if (nonCappedSum < 1e-9) break;
+    for (let i = 0; i < weights.length; i++){
+      if (weights[i] < maxW){
+        weights[i] += excess * (weights[i] / nonCappedSum);
+      }
+    }
+  }
+  const total = weights.reduce((s, x) => s + x, 0);
+  return weights.map(x => x / total);
+}
+
+// ============================================================
+// PLAYBACK STATE + FUNCTIONS
+// ============================================================
+let playState = {
+  currentMonth: 0,  // 0 = start (Jan 2025 initial), 12 = end (Dec 2025)
+  playing: false,
+  speed: 1,
+  interval: null,
+  currentWeights: [0.25, 0.25, 0.25, 0.25],  // updated by render
+};
+
+const MONTH_LABELS_EN = ["Start (Jan 2025)","Jan 2025","Feb 2025","Mar 2025","Apr 2025","May 2025","Jun 2025","Jul 2025","Aug 2025","Sep 2025","Oct 2025","Nov 2025","Dec 2025 (final)"];
+const MONTH_LABELS_ES = ["Inicio (Ene 2025)","Ene 2025","Feb 2025","Mar 2025","Abr 2025","May 2025","Jun 2025","Jul 2025","Ago 2025","Sep 2025","Oct 2025","Nov 2025","Dic 2025 (final)"];
+
+function togglePlay(){
+  if (playState.playing) pausePlayback();
+  else startPlayback();
+}
+function startPlayback(){
+  if (playState.currentMonth >= 12) playState.currentMonth = 0;
+  playState.playing = true;
+  document.getElementById("pb-play").textContent = "⏸ Pause";
+  const interval = 1000 / playState.speed;
+  playState.interval = setInterval(() => {
+    stepMonth();
+    if (playState.currentMonth >= 12) pausePlayback();
+  }, interval);
+}
+function pausePlayback(){
+  playState.playing = false;
+  document.getElementById("pb-play").textContent = "▶ Play";
+  if (playState.interval){ clearInterval(playState.interval); playState.interval = null; }
+}
+function stepMonth(){
+  if (playState.currentMonth < 12){
+    playState.currentMonth++;
+    draw2025Chart(playState.currentWeights, playState.currentMonth);
+  }
+}
+function resetPlayback(){
+  pausePlayback();
+  playState.currentMonth = 0;
+  draw2025Chart(playState.currentWeights, 0);
+}
+function setSpeed(s){
+  playState.speed = s;
+  ["1","2","4"].forEach(k => document.getElementById("sp-"+k).classList.remove("active"));
+  document.getElementById("sp-"+s).classList.add("active");
+  if (playState.playing){ pausePlayback(); startPlayback(); }
+}
+
+// ============================================================
+// CHART DRAWING (SVG)
+// ============================================================
+function drawHistoricalChart(upToMonth){
+  const svg = document.getElementById("chart-hist");
+  if (upToMonth === undefined) upToMonth = N_HIST_MONTHS;
+  if (upToMonth > N_HIST_MONTHS) upToMonth = N_HIST_MONTHS;
+  if (upToMonth < 0) upToMonth = 0;
+  const W = 1200, H = 360;
+  const padL = 60, padR = 20, padT = 20, padB = 40;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
+
+  // Max value across all series for y-scale
+  const allVals = [...EQUITY.spy.slice(0, N_HIST_MONTHS+1), ...EQUITY.agg.slice(0, N_HIST_MONTHS+1),
+                   ...EQUITY.dbc.slice(0, N_HIST_MONTHS+1), ...EQUITY.tb.slice(0, N_HIST_MONTHS+1)];
+  const yMax = Math.ceil(Math.max(...allVals) / 100) * 100 + 20;
+  const yMin = Math.min(...allVals);
+  const yFloor = Math.floor(yMin / 20) * 20;
+
+  const n = N_HIST_MONTHS + 1;
+  const xScale = i => padL + (i / (n-1)) * cw;
+  const yScale = v => padT + ch - ((v - yFloor) / (yMax - yFloor)) * ch;
+
+  let svgHtml = "";
+
+  // Grid + Y labels
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++){
+    const v = yFloor + (yMax - yFloor) * i / yTicks;
+    const y = yScale(v);
+    svgHtml += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>`;
+    svgHtml += `<text x="${padL - 6}" y="${y+4}" font-size="10" fill="#5A6378" text-anchor="end" font-family="ui-monospace,Menlo,monospace">${v.toFixed(0)}</text>`;
+  }
+  // X labels · one per year
+  for (let y = 0; y <= N_HIST_YEARS; y++){
+    const i = y * 12;
+    const x = xScale(i);
+    if (y % 2 === 0 || y === N_HIST_YEARS){
+      svgHtml += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT+ch}" stroke="#F1F5F9" stroke-width="1"/>`;
+      svgHtml += `<text x="${x}" y="${padT+ch+16}" font-size="10" fill="#5A6378" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">${2010 + y}</text>`;
+    }
+  }
+
+  // Colours per asset
+  const colours = {spy: "#2563EB", agg: "#0D9488", dbc: "#D97706", tb: "#5A6378"};
+
+  // Draw each series
+  for (const asset of ASSETS){
+    if (upToMonth < 1) continue;
+    let path = "";
+    for (let i = 0; i <= upToMonth; i++){
+      const x = xScale(i);
+      const y = yScale(EQUITY[asset][i]);
+      path += (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    }
+    svgHtml += `<path d="${path}" fill="none" stroke="${colours[asset]}" stroke-width="2"/>`;
+  }
+
+  svg.innerHTML = svgHtml;
+}
+
+function draw2025Chart(recommendedWeights, upTo){
+  const svg = document.getElementById("chart-2025");
+  const W = 1200, H = 320;
+  const padL = 80, padR = 20, padT = 20, padB = 40;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
+  if (upTo === undefined) upTo = 12;  // full year by default
+
+  const rets2025 = {
+    spy: RETURNS.spy.slice(N_HIST_MONTHS, N_TOTAL_MONTHS),
+    agg: RETURNS.agg.slice(N_HIST_MONTHS, N_TOTAL_MONTHS),
+    dbc: RETURNS.dbc.slice(N_HIST_MONTHS, N_TOTAL_MONTHS),
+    tb:  RETURNS.tb.slice(N_HIST_MONTHS,  N_TOTAL_MONTHS),
+  };
+
+  const initial = 1000000;
+  const oneN = [0.25, 0.25, 0.25, 0.25];
+  const strategies = {
+    mvo: {weights: recommendedWeights, color: "#D97706", width: 4, label: "MVO reco"},
+    "1n": {weights: oneN, color: "#7E22CE", width: 2, label: "1/N"},
+    vg:  {weights: [0.60, 0.40, 0, 0], color: "#15803D", width: 2.5, label: "60/40 Vanguard", dashed: true},
+    spy: {weights: [1,0,0,0], color: "#2563EB", width: 1.5, label: "SPY only"},
+    agg: {weights: [0,1,0,0], color: "#0D9488", width: 1.5, label: "AGG only"},
+    dbc: {weights: [0,0,1,0], color: "#EA580C", width: 1.5, label: "DBC only", dashed: true},
+  };
+
+  const traj = {};
+  for (const [key, s] of Object.entries(strategies)){
+    traj[key] = [initial];
+    for (let m = 0; m < 12; m++){
+      const monthRet = s.weights[0]*rets2025.spy[m] + s.weights[1]*rets2025.agg[m] +
+                       s.weights[2]*rets2025.dbc[m] + s.weights[3]*rets2025.tb[m];
+      traj[key].push(traj[key][traj[key].length-1] * (1 + monthRet));
+    }
+  }
+
+  const allVals = Object.values(traj).flat();
+  const yMax = Math.max(...allVals);
+  const yMin = Math.min(...allVals);
+  const yPad = (yMax - yMin) * 0.1;
+  const yTop = yMax + yPad;
+  const yBot = yMin - yPad;
+
+  const xScale = i => padL + (i / 12) * cw;
+  const yScale = v => padT + ch - ((v - yBot) / (yTop - yBot)) * ch;
+
+  let svgHtml = "";
+
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++){
+    const v = yBot + (yTop - yBot) * i / yTicks;
+    const y = yScale(v);
+    svgHtml += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>`;
+    svgHtml += `<text x="${padL - 6}" y="${y+4}" font-size="10" fill="#5A6378" text-anchor="end" font-family="ui-monospace,Menlo,monospace">$${Math.round(v/1000)}k</text>`;
+  }
+
+  const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","End"];
+  for (let m = 0; m <= 12; m++){
+    const x = xScale(m);
+    svgHtml += `<text x="${x}" y="${padT+ch+16}" font-size="10" fill="#5A6378" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">${monthLabels[m]}</text>`;
+  }
+
+  const drawOrder = ["spy","agg","dbc","1n","vg","mvo"];
+  for (const key of drawOrder){
+    const s = strategies[key];
+    let path = "";
+    const drawUpto = Math.min(upTo, 12);
+    for (let m = 0; m <= drawUpto; m++){
+      const x = xScale(m);
+      const y = yScale(traj[key][m]);
+      path += (m === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    }
+    const dashed = s.dashed ? 'stroke-dasharray="5,4"' : '';
+    svgHtml += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${s.width}" ${dashed}/>`;
+    // Add a dot at the current point
+    if (drawUpto > 0){
+      const x = xScale(drawUpto);
+      const y = yScale(traj[key][drawUpto]);
+      svgHtml += `<circle cx="${x}" cy="${y}" r="${s.width*1.5}" fill="${s.color}" stroke="white" stroke-width="1"/>`;
+    }
+  }
+
+  // Vertical cursor line at current position
+  if (upTo > 0 && upTo < 12){
+    const cx = xScale(upTo);
+    svgHtml += `<line x1="${cx}" y1="${padT}" x2="${cx}" y2="${padT+ch}" stroke="#D97706" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>`;
+  }
+
+  svg.innerHTML = svgHtml;
+
+  // Update month label
+  const isES = document.documentElement.lang === "es";
+  const labels = isES ? MONTH_LABELS_ES : MONTH_LABELS_EN;
+  const monthLabelEl = document.getElementById("pb-month-label");
+  if (monthLabelEl) monthLabelEl.textContent = labels[upTo];
+
+  // Update outcome table (only when fully played or full view)
+  if (upTo === 12) updateOutcomeTable(traj, initial, recommendedWeights);
+  else {
+    // Show partial: current values only
+    updatePartialOutcome(traj, initial, upTo);
+  }
+}
+
+function updatePartialOutcome(traj, initial, upTo){
+  const rows = [
+    {key: "mvo",  nameEn: "MVO recommendation", nameEs: "Recomendación MVO", detailEn: "(this simulator)", detailEs: "(este simulador)"},
+    {key: "vg",   nameEn: "60/40 Vanguard-style", nameEs: "60/40 estilo Vanguard", detailEn: "(market benchmark · VBIAX)", detailEs: "(benchmark de mercado · VBIAX)"},
+    {key: "1n",   nameEn: "1/N equal weight",    nameEs: "1/N pesos iguales", detailEn: "(naive baseline)",   detailEs: "(baseline ingenuo)"},
+    {key: "spy",  nameEn: "SPY 100%",            nameEs: "SPY 100%",         detailEn: "(equity only)",      detailEs: "(solo acciones)"},
+    {key: "agg",  nameEn: "AGG 100%",            nameEs: "AGG 100%",         detailEn: "(bonds only)",       detailEs: "(solo bonos)"},
+    {key: "dbc",  nameEn: "DBC 100%",            nameEs: "DBC 100%",         detailEn: "(commodities only)", detailEs: "(solo materias primas)"},
+  ];
+  const isES = document.documentElement.lang === "es";
+  const winnerKey = rows.reduce((best, r) => traj[r.key][upTo] > traj[best.key][upTo] ? r : best, rows[0]).key;
+  let tbody = "";
+  for (const r of rows){
+    const curV = traj[r.key][upTo];
+    const ret = (curV - initial) / initial;
+    const winnerClass = r.key === winnerKey ? "winner" : "";
+    const retClass = ret >= 0 ? "pos" : "neg";
+    const name = isES ? r.nameEs : r.nameEn;
+    const detail = isES ? r.detailEs : r.detailEn;
+    tbody += `<tr class="${winnerClass}"><td class="strategy">${name}<br><span style="font-size:10px;color:#5A6378;font-style:italic;">${detail}</span></td><td>$${Math.round(curV).toLocaleString("en-US")}</td><td class="${retClass}">${ret >= 0 ? '+' : ''}${(ret*100).toFixed(1)}%</td><td>—</td></tr>`;
+  }
+  document.getElementById("outcome-tbody").innerHTML = tbody;
+}
+
+function computeMaxDD(equity){
+  let peak = equity[0], maxDD = 0;
+  for (const v of equity){
+    if (v > peak) peak = v;
+    const dd = (v - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+  }
+  return maxDD;
+}
+
+function updateOutcomeTable(traj, initial, mvoWeights){
+  const rows = [
+    {key: "mvo",  name: "MVO recommendation", detail: "(this simulator)"},
+    {key: "vg",   name: "60/40 Vanguard-style", detail: "(market benchmark · VBIAX)"},
+    {key: "1n",   name: "1/N equal weight",    detail: "(naive baseline)"},
+    {key: "spy",  name: "SPY 100%",            detail: "(equity only)"},
+    {key: "agg",  name: "AGG 100%",            detail: "(bonds only)"},
+    {key: "dbc",  name: "DBC 100%",            detail: "(commodities only)"},
+  ];
+
+  // Find winner (highest final value)
+  const winnerKey = rows.reduce((best, r) =>
+    traj[r.key][12] > traj[best.key][12] ? r : best, rows[0]).key;
+
+  let tbody = "";
+  for (const r of rows){
+    const finalV = traj[r.key][12];
+    const ret = (finalV - initial) / initial;
+    const dd = computeMaxDD(traj[r.key]);
+    const winnerClass = r.key === winnerKey ? "winner" : "";
+    const retClass = ret >= 0 ? "pos" : "neg";
+    tbody += `<tr class="${winnerClass}">
+      <td class="strategy">${r.name}<br><span style="font-size:10px;color:#5A6378;font-style:italic;">${r.detail}</span></td>
+      <td>$${Math.round(finalV).toLocaleString("en-US")}</td>
+      <td class="${retClass}">${ret >= 0 ? '+' : ''}${(ret*100).toFixed(1)}%</td>
+      <td class="neg">${(dd*100).toFixed(1)}%</td>
+    </tr>`;
+  }
+  document.getElementById("outcome-tbody").innerHTML = tbody;
+
+  // Verdict
+  const mvoFinal = traj.mvo[12];
+  const oneNFinal = traj["1n"][12];
+  const mvoRet = (mvoFinal - initial) / initial;
+  const oneNRet = (oneNFinal - initial) / initial;
+  const winnerRow = rows.find(r => r.key === winnerKey);
+  const winnerRet = (traj[winnerKey][12] - initial) / initial;
+  const winnerName = winnerRow.name;
+
+  let vTitle, vBody;
+  if (winnerKey === "mvo"){
+    vTitle = "The Markowitz recommendation was the best allocation in 2025.";
+    vBody = `The MVO portfolio ended at $${Math.round(mvoFinal).toLocaleString("en-US")} (${mvoRet>=0?'+':''}${(mvoRet*100).toFixed(1)}%), beating both the 1/N baseline and every single-asset allocation. In this case the historical estimation captured what would happen well.`;
+  } else if (winnerKey === "1n"){
+    vTitle = "Equal weight beat Markowitz in 2025.";
+    vBody = `The MVO reco ended at $${Math.round(mvoFinal).toLocaleString("en-US")} (${mvoRet>=0?'+':''}${(mvoRet*100).toFixed(1)}%), while a naive 1/N split ended at $${Math.round(oneNFinal).toLocaleString("en-US")} (${oneNRet>=0?'+':''}${(oneNRet*100).toFixed(1)}%). This is the classic problem MVO faces: it concentrates too much when historical estimates mislead.`;
+  } else if (winnerKey === "vg"){
+    vTitle = "The 60/40 Vanguard benchmark beat Markowitz in 2025.";
+    vBody = `The MVO reco ended at $${Math.round(mvoFinal).toLocaleString("en-US")} (${mvoRet>=0?'+':''}${(mvoRet*100).toFixed(1)}%), while a simple 60/40 (buyable at Vanguard for 0.07% annual fee) ended at $${Math.round(traj.vg[12]).toLocaleString("en-US")} (${((traj.vg[12]-initial)/initial>=0?'+':'')}${(((traj.vg[12]-initial)/initial)*100).toFixed(1)}%). This is precisely the point: if you cannot beat the simple benchmark, the optimisation work added no value.`;
+  } else {
+    vTitle = `A single asset, ${winnerName}, beat the diversified recommendation in 2025.`;
+    vBody = `The MVO reco ended at $${Math.round(mvoFinal).toLocaleString("en-US")} (${mvoRet>=0?'+':''}${(mvoRet*100).toFixed(1)}%), while holding ${winnerName} alone would have delivered ${winnerRet>=0?'+':''}${(winnerRet*100).toFixed(1)}%. Diversification cost yield in this specific year but also capped drawdown. That trade-off is exactly what an AI overlay tries to time.`;
+  }
+  document.getElementById("verdict-title").textContent = vTitle;
+  document.getElementById("verdict-body").textContent = vBody;
+}
+
+// ============================================================
+
+// ============================================================
+// BETAS · using SPY as market proxy
+// ============================================================
+function computeBetas(){
+  const spyRets = RETURNS.spy.slice(0, N_HIST_MONTHS);
+  const spyMean = spyRets.reduce((s,x)=>s+x,0) / spyRets.length;
+  const spyVar = spyRets.reduce((s,x)=>s+(x-spyMean)**2,0) / (spyRets.length-1);
+  const betas = {};
+  for (const a of ['spy','agg','dbc','tb']){
+    const aRets = RETURNS[a].slice(0, N_HIST_MONTHS);
+    const aMean = aRets.reduce((s,x)=>s+x,0) / aRets.length;
+    let cov = 0;
+    for (let i=0; i<aRets.length; i++){
+      cov += (aRets[i] - aMean) * (spyRets[i] - spyMean);
+    }
+    cov /= (aRets.length - 1);
+    betas[a] = cov / spyVar;
+  }
+  return betas;
+}
+
+function renderBetas(){
+  const betas = computeBetas();
+  const labels = {spy: "SPY", agg: "AGG", dbc: "DBC", tb: "TB3MS"};
+  const interpretations = {
+    spy: "market itself · β = 1.00 by definition",
+    agg: null, dbc: null, tb: null  // computed below
+  };
+  const interpretationsES = {
+    spy: "el mercado mismo · β = 1.00 por definición",
+    agg: null, dbc: null, tb: null
+  };
+  const isES = document.documentElement.lang === "es";
+  const interp = isES ? interpretationsES : interpretations;
+
+  function autoInterp(b, en){
+    if (Math.abs(b - 1) < 0.05) return en ? "moves with the market" : "se mueve con el mercado";
+    if (b > 1.1) return en ? "amplifies market moves" : "amplifica los movimientos del mercado";
+    if (b > 0.5) return en ? "correlated to market, dampened" : "correlacionado al mercado, amortiguado";
+    if (b > 0.15) return en ? "weakly follows the market" : "sigue débilmente al mercado";
+    if (b > -0.15) return en ? "moves independently from the market" : "se mueve independientemente del mercado";
+    if (b > -0.5) return en ? "moves weakly opposite to the market" : "se mueve débilmente opuesto al mercado";
+    return en ? "hedges the market (opposite direction)" : "hace cobertura al mercado (dirección opuesta)";
+  }
+
+  let html = "";
+  for (const a of ['spy','agg','dbc','tb']){
+    const b = betas[a];
+    let text = interp[a];
+    if (text === null) text = autoInterp(b, !isES);
+    const tagCls = {spy: "spy-tag", agg: "agg-tag", dbc: "dbc-tag", tb: "tb-tag"}[a];
+    html += `<tr>
+      <td class="asset"><span class="asset-tag ${tagCls}">${labels[a]}</span></td>
+      <td class="num beta-val">${b.toFixed(3)}</td>
+      <td class="beta-interp">${text}</td>
+    </tr>`;
+  }
+  const tbody = document.getElementById("betas-tbody");
+  if (tbody) tbody.innerHTML = html;
+}
+
+// ============================================================
+// EFFICIENT FRONTIER · trace by varying λ
+// ============================================================
+function computeFrontier(mu, cov, maxW){
+  // Classical Markowitz theoretical frontier · sampled over 3 RISKY assets only
+  // NO max-weight cap here · shows the pure bullet shape · cap only applies to MVO recommendation
+  const N_RANDOM = 1500;
+  const samples = [];
+  for (let s = 0; s < N_RANDOM; s++){
+    const raw = [
+      -Math.log(Math.random() + 1e-10),
+      -Math.log(Math.random() + 1e-10),
+      -Math.log(Math.random() + 1e-10),
+    ];
+    const power = 0.2 + Math.random() * 4.5;
+    const scaled = raw.map(x => Math.pow(x, power));
+    const sum = scaled.reduce((a,b) => a+b, 0);
+    const w3 = scaled.map(x => x / sum);
+    const w = [w3[0], w3[1], w3[2], 0];
+    const ret = portRet(w, mu);
+    const vol = Math.sqrt(Math.max(portVar(w, cov), 0));
+    if (isFinite(ret) && isFinite(vol)){
+      samples.push({ret, vol, weights: w});
+    }
+  }
+  for (let i = 0; i < 3; i++){
+    const w = [0,0,0,0]; w[i] = 1;
+    samples.push({ret: portRet(w, mu), vol: Math.sqrt(Math.max(portVar(w, cov), 0)), weights: w});
+  }
+  samples.sort((a,b) => a.vol - b.vol);
+  const upper = [];
+  let maxR = -Infinity;
+  for (const p of samples){ if (p.ret > maxR + 1e-10){ upper.push(p); maxR = p.ret; } }
+  const lower = [];
+  let minR = Infinity;
+  for (const p of samples){ if (p.ret < minR - 1e-10){ lower.push(p); minR = p.ret; } }
+  return {samples, upper, lower};
+}
+
+function drawFrontierChart(mu, cov, currentW, maxW, upToPoint){
+  const svg = document.getElementById("chart-frontier");
+  if (!svg) return;
+  const W = 1200, H = 380;
+  const padL = 80, padR = 30, padT = 20, padB = 50;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
+
+  const result = computeFrontier(mu, cov, maxW);
+  const samples = result.samples || [];
+  const upper = result.upper || [];
+  const lower = result.lower || [];
+  const N = Math.max(upper.length, lower.length);
+  if (upToPoint === undefined) upToPoint = N;
+  if (upToPoint > N) upToPoint = N;
+
+  const assetLabels = ['SPY','AGG','DBC','TB3MS'];
+  const assetColors = ["#2563EB","#0D9488","#EA580C","#5A6378"];
+  const assetPoints = [];
+  for (let i=0; i<4; i++){
+    const px = Math.sqrt(Math.max(cov[i][i], 0));
+    const py = mu[i];
+    if (isFinite(px) && isFinite(py)){
+      assetPoints.push({x: px, y: py, label: assetLabels[i], color: assetColors[i]});
+    }
+  }
+
+  const oneN = [0.25,0.25,0.25,0.25];
+  const vg = [0.60, 0.40, 0, 0];
+  const benchmarkPoints = [
+    {x: Math.sqrt(Math.max(portVar(oneN, cov),0)), y: portRet(oneN, mu), label: "1/N", color: "#7E22CE"},
+    {x: Math.sqrt(Math.max(portVar(vg, cov),0)),   y: portRet(vg, mu),   label: "60/40", color: "#15803D"},
+  ];
+
+  // Project the current MVO to risky-only for display on the frontier chart
+  // (frontier is defined over risky assets only · cash is the risk-free complement)
+  const totalRisky = currentW[0] + currentW[1] + currentW[2];
+  const cashPct = currentW[3];
+  let displayW = currentW.slice();
+  if (totalRisky > 1e-6){
+    displayW = [currentW[0]/totalRisky, currentW[1]/totalRisky, currentW[2]/totalRisky, 0];
+  }
+  const currentX = Math.sqrt(Math.max(portVar(displayW, cov), 0));
+  const currentY = portRet(displayW, mu);
+
+  const allX = [...samples.map(p=>p.vol), ...assetPoints.map(p=>p.x), ...benchmarkPoints.map(p=>p.x), currentX].filter(isFinite);
+  const allY = [...samples.map(p=>p.ret), ...assetPoints.map(p=>p.y), ...benchmarkPoints.map(p=>p.y), currentY].filter(isFinite);
+  if (allX.length === 0 || allY.length === 0){
+    svg.innerHTML = '<text x="600" y="190" text-anchor="middle" font-size="14" fill="#5A6378">Data insufficient</text>';
+    return;
+  }
+
+  let xMax = Math.max(...allX) * 1.15;
+  const xMin = 0;
+  let yMax = Math.max(...allY) * 1.15;
+  let yMin = Math.min(0, Math.min(...allY) * 1.15);
+  if (yMax - yMin < 0.0005) yMax = yMin + 0.02;
+  if (xMax - xMin < 0.0005) xMax = 0.02;
+
+  const xScale = v => padL + (v - xMin) / (xMax - xMin) * cw;
+  const yScale = v => padT + ch - (v - yMin) / (yMax - yMin) * ch;
+
+  let s = "";
+
+  // Grid + axes
+  for (let i = 0; i <= 5; i++){
+    const yv = yMin + (yMax - yMin) * i / 5;
+    const yp = yScale(yv);
+    s += `<line x1="${padL}" y1="${yp}" x2="${W-padR}" y2="${yp}" stroke="#E2E8F0" stroke-width="1"/>`;
+    s += `<text x="${padL - 6}" y="${yp+4}" font-size="10" fill="#5A6378" text-anchor="end" font-family="ui-monospace,Menlo,monospace">${(yv*100).toFixed(2)}%</text>`;
+  }
+  for (let i = 0; i <= 5; i++){
+    const xv = xMin + (xMax - xMin) * i / 5;
+    const xp = xScale(xv);
+    s += `<line x1="${xp}" y1="${padT}" x2="${xp}" y2="${padT+ch}" stroke="#F1F5F9" stroke-width="1"/>`;
+    s += `<text x="${xp}" y="${padT+ch+16}" font-size="10" fill="#5A6378" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">${(xv*100).toFixed(2)}%</text>`;
+  }
+
+  const isES = document.documentElement.lang === "es";
+  const xLabel = isES ? "Riesgo esperado · volatilidad mensual σ (%)" : "Expected risk · monthly volatility σ (%)";
+  const yLabel = isES ? "Retorno esperado · mensual μ (%)" : "Expected return · monthly μ (%)";
+  s += `<text x="${padL + cw/2}" y="${H-8}" font-size="11" fill="#1A1F2E" text-anchor="middle" font-family="Georgia,serif" font-weight="700">${xLabel}</text>`;
+  s += `<text x="18" y="${padT + ch/2}" font-size="11" fill="#1A1F2E" text-anchor="middle" font-family="Georgia,serif" font-weight="700" transform="rotate(-90 18 ${padT + ch/2})">${yLabel}</text>`;
+
+  // Cloud of random portfolios
+  for (const p of samples){
+    const x = xScale(p.vol), y = yScale(p.ret);
+    if (x >= padL && x <= W-padR && y >= padT && y <= padT+ch){
+      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.5" fill="#B0BEC5" opacity="0.45"/>`;
+    }
+  }
+
+  // Upper envelope · efficient frontier (green)
+  const upToU = Math.min(upToPoint, upper.length);
+  if (upToU >= 2){
+    let path = "";
+    for (let i = 0; i < upToU; i++){
+      const x = xScale(upper[i].vol);
+      const y = yScale(upper[i].ret);
+      path += (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    }
+    s += `<path d="${path}" fill="none" stroke="#15803D" stroke-width="3"/>`;
+  }
+  // Lower envelope · inefficient portfolios (red)
+  const upToL = Math.min(upToPoint, lower.length);
+  if (upToL >= 2){
+    let path = "";
+    for (let i = 0; i < upToL; i++){
+      const x = xScale(lower[i].vol);
+      const y = yScale(lower[i].ret);
+      path += (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    }
+    s += `<path d="${path}" fill="none" stroke="#B91C1C" stroke-width="3"/>`;
+  }
+
+  // Label vertex A (minimum variance = start of both envelopes)
+  if (upper.length > 0){
+    const A = upper[0];
+    const ax = xScale(A.vol);
+    const ay = yScale(A.ret);
+    s += `<circle cx="${ax}" cy="${ay}" r="5" fill="#1E40AF" stroke="white" stroke-width="2"/>`;
+    s += `<text x="${ax + 8}" y="${ay + 4}" font-size="12" fill="#1E40AF" font-weight="700" font-family="Georgia,serif">A</text>`;
+  }
+  // Label point B (top of efficient frontier)
+  if (upper.length > 0){
+    const B = upper[upper.length - 1];
+    const bx = xScale(B.vol);
+    const by = yScale(B.ret);
+    s += `<text x="${bx + 8}" y="${by + 4}" font-size="12" fill="#15803D" font-weight="700" font-family="Georgia,serif">B</text>`;
+  }
+  // Label point C (bottom-right, end of inefficient curve)
+  if (lower.length > 0){
+    const C = lower[lower.length - 1];
+    const cx = xScale(C.vol);
+    const cy = yScale(C.ret);
+    s += `<text x="${cx + 8}" y="${cy + 4}" font-size="12" fill="#B91C1C" font-weight="700" font-family="Georgia,serif">C</text>`;
+  }
+
+  // Individual asset dots
+  for (const p of assetPoints){
+    const x = xScale(p.x), y = yScale(p.y);
+    s += `<circle cx="${x}" cy="${y}" r="6" fill="${p.color}" stroke="white" stroke-width="2"/>`;
+    s += `<text x="${x}" y="${y-10}" font-size="10" fill="${p.color}" text-anchor="middle" font-weight="700" font-family="Georgia,serif">${p.label}</text>`;
+  }
+  for (const p of benchmarkPoints){
+    const x = xScale(p.x), y = yScale(p.y);
+    s += `<circle cx="${x}" cy="${y}" r="7" fill="${p.color}" stroke="white" stroke-width="2"/>`;
+    s += `<text x="${x}" y="${y-12}" font-size="10" fill="${p.color}" text-anchor="middle" font-weight="700" font-family="Georgia,serif">${p.label}</text>`;
+  }
+  // Current MVO
+  if (upToPoint >= N){
+    const cx = xScale(currentX);
+    const cy = yScale(currentY);
+    s += `<circle cx="${cx}" cy="${cy}" r="12" fill="#D97706" stroke="white" stroke-width="3" opacity="0.95"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="18" fill="none" stroke="#D97706" stroke-width="2" opacity="0.4"/>`;
+    const recoLabel = isES ? "Tu MVO (riesgo)" : "Your MVO (risky)";
+    s += `<text x="${cx}" y="${cy-22}" font-size="11" fill="#D97706" text-anchor="middle" font-weight="700" font-family="Georgia,serif">${recoLabel}</text>`;
+    // Cash label below
+    if (cashPct > 0.02){
+      const cashText = (isES ? "+ " : "+ ") + (cashPct*100).toFixed(0) + (isES ? "% en cash (TB3MS)" : "% in cash (TB3MS)");
+      s += `<text x="${cx}" y="${cy+30}" font-size="10" fill="#D97706" text-anchor="middle" font-style="italic" font-family="Georgia,serif">${cashText}</text>`;
+    }
+  }
+
+  if (upToPoint < N && upToPoint > 0){
+    const pctText = (isES ? "Trazando " : "Tracing ") + upToPoint + " / " + N;
+    s += `<text x="${W - padR}" y="${padT + 12}" font-size="11" fill="#7E22CE" text-anchor="end" font-family="Georgia,serif" font-weight="700">${pctText}</text>`;
+  }
+
+  svg.innerHTML = s;
+
+  if (typeof frontierPlay !== "undefined") frontierPlay.totalPoints = N;
+}
+
+
+// ============================================================
+
+// ============================================================
+// FRONTIER PLAYBACK · animate curve build-up
+// ============================================================
+let frontierPlay = {
+  currentPoint: 61,  // N+1 · shows full frontier initially
+  playing: false,
+  interval: null,
+  speed: 1,
+  totalPoints: 61,
+};
+
+function togglePlayFrontier(){
+  if (frontierPlay.playing) pauseFrontier();
+  else startFrontier();
+}
+function startFrontier(){
+  // Reset to 0 if at end
+  if (frontierPlay.currentPoint >= frontierPlay.totalPoints) frontierPlay.currentPoint = 0;
+  frontierPlay.playing = true;
+  const btn = document.getElementById("fpb-play");
+  if (btn) btn.textContent = "⏸ Pause";
+  // 200 ms per step base · at 1x that is 12 s for 61 points · visible pace
+  const stepMs = Math.max(30, 200 / frontierPlay.speed);
+  frontierPlay.interval = setInterval(function(){
+    frontierPlay.currentPoint++;
+    redrawFrontier();
+    // Update status label
+    const status = document.getElementById("fpb-status");
+    if (status){
+      const isES = document.documentElement.lang === "es";
+      if (frontierPlay.currentPoint >= frontierPlay.totalPoints){
+        status.textContent = isES ? "completo · pulsa ↺ y luego ▶" : "complete · press ↺ then ▶";
+      } else {
+        status.textContent = (isES ? "trazando λ=" : "tracing λ=") + (0.5 * Math.pow(200, frontierPlay.currentPoint/60)).toFixed(2) + " (" + frontierPlay.currentPoint + "/" + frontierPlay.totalPoints + ")";
+      }
+    }
+    if (frontierPlay.currentPoint >= frontierPlay.totalPoints) pauseFrontier();
+  }, stepMs);
+}
+function pauseFrontier(){
+  frontierPlay.playing = false;
+  if (frontierPlay.interval){ clearInterval(frontierPlay.interval); frontierPlay.interval = null; }
+  const btn = document.getElementById("fpb-play");
+  if (btn) btn.textContent = "▶ Play";
+}
+function resetFrontier(){
+  pauseFrontier();
+  frontierPlay.currentPoint = 0;
+  const status = document.getElementById("fpb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    status.textContent = isES ? "listo · pulsa ▶ Play" : "ready · press ▶ Play";
+  }
+  redrawFrontier();
+}
+function setFrontierSpeed(s){
+  frontierPlay.speed = s;
+  ["1","2","4"].forEach(k => {
+    const el = document.getElementById("fsp-"+k);
+    if (el) el.classList.remove("active");
+  });
+  const activeEl = document.getElementById("fsp-"+s);
+  if (activeEl) activeEl.classList.add("active");
+  if (frontierPlay.playing){ pauseFrontier(); startFrontier(); }
+}
+function redrawFrontier(){
+  const mu = [
+    parseFloat(document.getElementById("mu-spy").value) / 100,
+    parseFloat(document.getElementById("mu-agg").value) / 100,
+    parseFloat(document.getElementById("mu-dbc").value) / 100,
+    parseFloat(document.getElementById("mu-tb").value)  / 100,
+  ];
+  const maxW = parseFloat(document.getElementById("maxw").value) / 100;
+  drawFrontierChart(mu, HIST.cov, playState.currentWeights, maxW, frontierPlay.currentPoint);
+}
+
+// ============================================================
+
+// ============================================================
+// HISTORICAL PLAYBACK · animate 180 months of equity curves
+// ============================================================
+let playHist = {
+  currentMonth: 180,
+  playing: false,
+  interval: null,
+  speed: 1,
+  totalMonths: 180,
+};
+
+function togglePlayHistorical(){
+  if (playHist.playing) pauseHistorical();
+  else startHistorical();
+}
+function startHistorical(){
+  if (playHist.currentMonth >= playHist.totalMonths) playHist.currentMonth = 0;
+  playHist.playing = true;
+  const btn = document.getElementById("hpb-play");
+  if (btn) btn.textContent = "⏸ Pause";
+  const stepMs = Math.max(15, 60 / playHist.speed);  // 60ms base · 180*60 = 10.8s at 1x
+  playHist.interval = setInterval(function(){
+    playHist.currentMonth++;
+    drawHistoricalChart(playHist.currentMonth);
+    const status = document.getElementById("hpb-status");
+    if (status){
+      const isES = document.documentElement.lang === "es";
+      if (playHist.currentMonth >= playHist.totalMonths){
+        status.textContent = isES ? "completo · pulsa ↺ y luego ▶" : "complete · press ↺ then ▶";
+      } else {
+        const year = 2010 + Math.floor(playHist.currentMonth / 12);
+        const monthIdx = playHist.currentMonth % 12;
+        const monthLabels = isES
+          ? ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+          : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        status.textContent = monthLabels[monthIdx] + " " + year + " (" + playHist.currentMonth + "/180)";
+      }
+    }
+    if (playHist.currentMonth >= playHist.totalMonths) pauseHistorical();
+  }, stepMs);
+}
+function pauseHistorical(){
+  playHist.playing = false;
+  if (playHist.interval){ clearInterval(playHist.interval); playHist.interval = null; }
+  const btn = document.getElementById("hpb-play");
+  if (btn) btn.textContent = "▶ Play";
+}
+function resetHistorical(){
+  pauseHistorical();
+  playHist.currentMonth = 0;
+  drawHistoricalChart(0);
+  const status = document.getElementById("hpb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    status.textContent = isES ? "listo · pulsa ▶ Play" : "ready · press ▶ Play";
+  }
+}
+function setHistSpeed(s){
+  playHist.speed = s;
+  ["1","2","4"].forEach(k => {
+    const el = document.getElementById("hsp-"+k);
+    if (el) el.classList.remove("active");
+  });
+  const activeEl = document.getElementById("hsp-"+s);
+  if (activeEl) activeEl.classList.add("active");
+  if (playHist.playing){ pauseHistorical(); startHistorical(); }
+}
+
+// ============================================================
+
+// ============================================================
+// INVESTOR PROFILES PLAYBACK · Section 5
+// Cycles through 5 preset investor types, animating slider values
+// ============================================================
+const INVESTOR_PROFILES = [
+  {nameEn: "Conservative retiree",   nameEs: "Jubilado conservador",
+   muSpy: 0.6, muAgg: 0.35, muDbc: 0.0, muTb: 0.20, lambda: 15, maxw: 40},
+  {nameEn: "Balanced (historical)",  nameEs: "Balanceado (histórico)",
+   muSpy: 0.80, muAgg: 0.25, muDbc: 0.10, muTb: 0.08, lambda: 5, maxw: 40},
+  {nameEn: "Growth-oriented",        nameEs: "Orientado a crecimiento",
+   muSpy: 1.20, muAgg: 0.20, muDbc: 0.30, muTb: 0.08, lambda: 3, maxw: 50},
+  {nameEn: "Aggressive equity",      nameEs: "Agresivo en acciones",
+   muSpy: 1.50, muAgg: 0.10, muDbc: 0.40, muTb: 0.05, lambda: 1.5, maxw: 60},
+  {nameEn: "Momentum tilt",          nameEs: "Sesgo de momentum",
+   muSpy: 1.30, muAgg: 0.20, muDbc: 0.80, muTb: 0.10, lambda: 2, maxw: 55},
+];
+
+let playProfiles = {
+  currentProfile: -1,
+  playing: false,
+  interval: null,
+  speed: 1,
+};
+
+function togglePlayProfiles(){
+  if (playProfiles.playing) pauseProfiles();
+  else startProfiles();
+}
+function startProfiles(){
+  if (playProfiles.currentProfile >= INVESTOR_PROFILES.length - 1) playProfiles.currentProfile = -1;
+  playProfiles.playing = true;
+  const btn = document.getElementById("ppb-play");
+  if (btn) btn.textContent = "⏸ Pause";
+  const stepMs = Math.max(1500, 4000 / playProfiles.speed);
+  const stepFn = function(){
+    playProfiles.currentProfile++;
+    if (playProfiles.currentProfile >= INVESTOR_PROFILES.length){
+      pauseProfiles();
+      return;
+    }
+    applyProfile(playProfiles.currentProfile);
+    if (playProfiles.currentProfile >= INVESTOR_PROFILES.length - 1){
+      // Last profile shown · let it linger a bit then stop
+      setTimeout(pauseProfiles, stepMs);
+    }
+  };
+  stepFn();
+  playProfiles.interval = setInterval(stepFn, stepMs);
+}
+function pauseProfiles(){
+  playProfiles.playing = false;
+  if (playProfiles.interval){ clearInterval(playProfiles.interval); playProfiles.interval = null; }
+  const btn = document.getElementById("ppb-play");
+  if (btn) btn.textContent = "▶ Play";
+}
+function resetProfiles(){
+  pauseProfiles();
+  playProfiles.currentProfile = -1;
+  const status = document.getElementById("ppb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    status.textContent = isES ? "listo · pulsa ▶ Play" : "ready · press ▶ Play";
+  }
+  // Restore historical defaults
+  populateHistoricalDisplays();
+  document.getElementById("lambda").value = 5.0;
+  document.getElementById("maxw").value = 40;
+  render();
+}
+function setProfilesSpeed(s){
+  playProfiles.speed = s;
+  ["1","2"].forEach(k => {
+    const el = document.getElementById("psp-"+k);
+    if (el) el.classList.remove("active");
+  });
+  const activeEl = document.getElementById("psp-"+s);
+  if (activeEl) activeEl.classList.add("active");
+  if (playProfiles.playing){ pauseProfiles(); startProfiles(); }
+}
+function applyProfile(idx){
+  const p = INVESTOR_PROFILES[idx];
+  document.getElementById("mu-spy").value = p.muSpy;
+  document.getElementById("mu-agg").value = p.muAgg;
+  document.getElementById("mu-dbc").value = p.muDbc;
+  document.getElementById("mu-tb").value  = p.muTb;
+  document.getElementById("lambda").value = p.lambda;
+  document.getElementById("maxw").value   = p.maxw;
+  render();
+  const status = document.getElementById("ppb-status");
+  if (status){
+    const isES = document.documentElement.lang === "es";
+    const name = isES ? p.nameEs : p.nameEn;
+    status.textContent = (idx+1) + "/" + INVESTOR_PROFILES.length + " · " + name;
+  }
+}
+
+// ============================================================
+// REVEAL PLAYBACK · Section 6
+// Reset weights/amounts to 0 then let CSS transition animate them back
+// ============================================================
+function playReveal(){
+  // Save current values by re-rendering after reset
+  // Step 1: set all weight bars to 0 % and $ amounts to $0
+  const btn = document.getElementById("rpb-play");
+  if (btn) btn.disabled = true;
+  const assets = ["spy","agg","dbc","tb"];
+  for (const a of assets){
+    const bar = document.getElementById("bar-"+a);
+    if (bar) bar.style.width = "0%";
+    const wt = document.getElementById("wt-"+a);
+    if (wt) wt.textContent = "0.0 %";
+    const pvwt = document.getElementById("pv-wt-"+a);
+    if (pvwt) pvwt.textContent = "0.0 %";
+    const pvd = document.getElementById("pv-dollar-"+a);
+    if (pvd) pvd.textContent = "$0";
+  }
+  const mret = document.getElementById("m-ret");
+  const mvol = document.getElementById("m-vol");
+  const msh  = document.getElementById("m-sharpe");
+  if (mret) mret.textContent = "—";
+  if (mvol) mvol.textContent = "—";
+  if (msh)  msh.textContent  = "—";
+  // Step 2: after 400ms, re-render (CSS transition on wt-fill takes 800ms)
+  setTimeout(function(){
+    render();
+    if (btn) btn.disabled = false;
+  }, 500);
+}
+
+// ============================================================
+// UI RENDER
+// ============================================================
+function fmtPct(v, d=2){ return (v*100).toFixed(d) + " %"; }
+function fmtUSD(v){ return "$" + Math.round(v).toLocaleString("en-US"); }
+
+function populateHistoricalDisplays(){
+  // μ row
+  ["spy","agg","dbc","tb"].forEach((a, i) => {
+    document.getElementById(`mu-hist-${a}`).textContent = (HIST.mu[i] * 100).toFixed(3) + " %";
+  });
+  // Cov matrix
+  const tbody = document.getElementById("cov-tbody");
+  let html = "";
+  const labels = ["SPY","AGG","DBC","TB3MS"];
+  for (let i = 0; i < 4; i++){
+    html += `<tr><td class="corner">${labels[i]}</td>`;
+    for (let j = 0; j < 4; j++){
+      const val = HIST.cov[i][j];
+      const cls = i === j ? "diag" : "";
+      html += `<td class="${cls}">${(val * 10000).toFixed(2)}</td>`;
+    }
+    html += "</tr>";
+  }
+  tbody.innerHTML = html;
+
+  // Also set slider defaults from historical mu (in percent)
+  document.getElementById("mu-spy").value = (HIST.mu[0] * 100).toFixed(2);
+  document.getElementById("mu-agg").value = (HIST.mu[1] * 100).toFixed(2);
+  document.getElementById("mu-dbc").value = (HIST.mu[2] * 100).toFixed(2);
+  document.getElementById("mu-tb").value  = (HIST.mu[3] * 100).toFixed(2);
+}
+
+function render(){
+  const mu = [
+    parseFloat(document.getElementById("mu-spy").value) / 100,
+    parseFloat(document.getElementById("mu-agg").value) / 100,
+    parseFloat(document.getElementById("mu-dbc").value) / 100,
+    parseFloat(document.getElementById("mu-tb").value)  / 100,
+  ];
+  const lambda = parseFloat(document.getElementById("lambda").value);
+
+  // Slider readouts
+  document.getElementById("v-mu-spy").textContent = fmtPct(mu[0]);
+  document.getElementById("v-mu-agg").textContent = fmtPct(mu[1]);
+  document.getElementById("v-mu-dbc").textContent = fmtPct(mu[2]);
+  document.getElementById("v-mu-tb").textContent  = fmtPct(mu[3]);
+  document.getElementById("v-lambda").textContent = lambda.toFixed(1);
+
+  // Compute MVO weights using selected μ and historical Σ
+  const maxW = parseFloat(document.getElementById("maxw").value) / 100;
+  document.getElementById("v-maxw").textContent = (maxW * 100).toFixed(0) + " %";
+  let w = mvoWeights(mu, HIST.cov, lambda);
+  w = applyMaxWeightCap(w, maxW);
+
+  ASSETS.forEach((a, i) => {
+    document.getElementById(`bar-${a}`).style.width = (w[i] * 100).toFixed(1) + "%";
+    document.getElementById(`wt-${a}`).textContent = fmtPct(w[i], 1);
+    document.getElementById(`pv-wt-${a}`).textContent = fmtPct(w[i], 1);
+    document.getElementById(`pv-dollar-${a}`).textContent = fmtUSD(w[i] * 1000000);
+  });
+
+  const pRet = portRet(w, mu);
+  const pVar = portVar(w, HIST.cov);
+  const pVol = Math.sqrt(pVar);
+  const sharpe = pVol > 1e-9 ? (pRet / pVol) * Math.sqrt(12) : 0;
+  document.getElementById("m-ret").textContent = fmtPct(pRet, 2);
+  document.getElementById("m-vol").textContent = fmtPct(pVol, 2);
+  document.getElementById("m-sharpe").textContent = sharpe.toFixed(3);
+  playState.currentWeights = w.slice();
+
+  // Redraw 2025 chart with new recommendation
+  draw2025Chart(w, 12);
+  drawFrontierChart(mu, HIST.cov, w, maxW, frontierPlay.totalPoints);
+}
+
+function resetDefaults(){
+  populateHistoricalDisplays();
+  document.getElementById("lambda").value = 5.0;
+  render();
+}
+
+// Wire up
+["mu-spy","mu-agg","mu-dbc","mu-tb","lambda","maxw"].forEach(id => {
+  document.getElementById(id).addEventListener("input", render);
+});
+
+// Initial setup
+populateHistoricalDisplays();
+drawHistoricalChart();
+renderBetas();
+render();
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  function tryClick(attempt) {
+    const btn = document.querySelector('#hpb-play');
+    if (btn) {
+      const label = (btn.textContent || '').toLowerCase();
+      if (!label.includes('pause') && !label.includes('pausa')) btn.click();
+      return;
+    }
+    if (attempt < 20) setTimeout(() => tryClick(attempt + 1), 200);
+  }
+  if (document.readyState === 'complete') setTimeout(() => tryClick(0), 400);
+  else window.addEventListener('load', () => setTimeout(() => tryClick(0), 400));
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scenario Playback · Narrative walkthrough · Practicum Part 2</title>
+<style>
+:root{--ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;--lgray:#E2E8F0;--xlgray:#F1F5F9;--blue:#2563EB;--lblue:#DBEAFE;--teal:#0D9488;--lteal:#CCFBF1;--green:#15803D;--lgreen:#DCFCE7;--amber:#D97706;--lamber:#FEF3C7;--red:#B91C1C;--lred:#FEE2E2;--purple:#7E22CE;--lpurple:#F3E8FF;--gray-line:#94A3B8;}
+*{box-sizing:border-box;}
+body{margin:0;padding:20px 28px 30px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#F0F2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.5;}
+.wrap{max-width:1400px;margin:0 auto;}
+.kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:6px;}
+h1{font-family:Georgia,serif;font-size:24px;font-weight:700;margin:0 0 6px;line-height:1.25;}
+.sub{font-size:12.5px;color:var(--muted);font-style:italic;margin:0 0 18px;}
+
+/* Scenario selector */
+.scenario-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.sc-card{background:var(--white);border:2px solid var(--lgray);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.2s;position:relative;}
+.sc-card:hover{border-color:var(--amber);transform:translateY(-2px);}
+.sc-card.active{border-color:var(--amber);background:linear-gradient(135deg,var(--lamber) 0%,var(--white) 100%);box-shadow:0 6px 18px rgba(217,119,6,0.2);}
+.sc-name{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--ink);margin-bottom:2px;}
+.sc-period{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--muted);}
+.sc-desc{font-size:11.5px;color:var(--ink);margin-top:6px;line-height:1.4;}
+.sc-icon{font-size:18px;position:absolute;top:14px;right:14px;}
+
+/* Playback bar */
+.playback-bar{background:var(--ink);color:var(--white);padding:14px 20px;border-radius:10px;margin-bottom:14px;display:grid;grid-template-columns:auto auto auto 1fr auto;gap:14px;align-items:center;}
+.btn{background:var(--amber);color:var(--white);border:none;border-radius:6px;padding:10px 18px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;transition:all 0.15s;}
+.btn:hover{background:#B45309;}
+.btn.sec{background:#334155;padding:8px 12px;}
+.btn.sec:hover{background:#475569;}
+.progress-outer{background:#334155;height:8px;border-radius:4px;overflow:hidden;}
+.progress-inner{background:linear-gradient(90deg,var(--amber),#F59E0B);height:100%;transition:width 0.3s;border-radius:4px;}
+.speed-group{display:flex;gap:4px;}
+.speed-btn{background:#334155;color:#CBD5E1;border:none;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:700;}
+.speed-btn.active{background:var(--amber);color:var(--white);}
+.phase-display{font-family:Georgia,serif;font-weight:700;font-size:14px;color:var(--amber);white-space:nowrap;}
+
+/* Episode timeline */
+.timeline-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px;}
+.tl-month{background:var(--white);border:2px solid var(--lgray);border-radius:8px;padding:8px 6px;text-align:center;transition:all 0.2s;position:relative;}
+.tl-month.past{background:var(--lgreen);border-color:var(--green);opacity:0.85;}
+.tl-month.active{background:var(--lamber);border-color:var(--amber);box-shadow:0 0 0 3px var(--amber);transform:scale(1.05);}
+.tl-month.future{opacity:0.4;}
+.tl-num{font-family:Georgia,serif;font-weight:700;font-size:11px;color:var(--muted);}
+.tl-date{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;margin-top:2px;}
+.tl-return{font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-top:3px;}
+.tl-return.pos{color:var(--green);font-weight:700;}
+.tl-return.neg{color:var(--red);font-weight:700;}
+
+/* Main stage — 3-column layout */
+.stage-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.stage-panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:16px 18px;min-height:280px;}
+.stage-panel h3{font-family:Georgia,serif;font-size:14px;margin:0 0 12px;color:var(--ink);border-bottom:2px solid;padding-bottom:6px;display:flex;justify-content:space-between;}
+.stage-panel.signal h3{border-bottom-color:var(--red);}
+.stage-panel.model h3{border-bottom-color:var(--blue);}
+.stage-panel.decision h3{border-bottom-color:var(--amber);}
+.stage-panel.reality h3{border-bottom-color:var(--purple);}
+.stage-panel.outcome h3{border-bottom-color:var(--green);}
+
+.phase-badge{background:var(--ink);color:var(--white);font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;}
+.phase-badge.signal{background:var(--red);}
+.phase-badge.model{background:var(--blue);}
+.phase-badge.decision{background:var(--amber);}
+.phase-badge.reality{background:var(--purple);}
+.phase-badge.outcome{background:var(--green);}
+
+/* Feature/prediction/weight display within panels */
+.feature-item{background:var(--xlgray);border-left:3px solid;border-radius:5px;padding:8px 10px;margin-bottom:6px;transition:all 0.4s;opacity:0;transform:translateY(6px);}
+.feature-item.visible{opacity:1;transform:translateY(0);}
+.feature-item.h1{border-left-color:var(--green);}
+.feature-item.h2{border-left-color:var(--red);}
+.feature-item.h3{border-left-color:var(--amber);}
+.feature-item .name{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+.feature-item .value{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;margin-top:2px;}
+.feature-item .badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--white);margin-left:6px;}
+.feature-item .badge.warn{background:var(--red);color:var(--white);}
+.feature-item .badge.info{background:var(--amber);color:var(--white);}
+
+.pred-item{background:var(--xlgray);border-left:3px solid;border-radius:5px;padding:8px 10px;margin-bottom:6px;display:grid;grid-template-columns:60px 1fr 60px;gap:6px;align-items:center;transition:all 0.4s;opacity:0;transform:translateX(-10px);}
+.pred-item.visible{opacity:1;transform:translateX(0);}
+.pred-item.spy{border-left-color:var(--blue);}
+.pred-item.agg{border-left-color:var(--teal);}
+.pred-item.dbc{border-left-color:var(--amber);}
+.pred-item.tb3ms{border-left-color:var(--purple);}
+.pred-asset{font-family:Georgia,serif;font-weight:700;font-size:13px;}
+.pred-asset.spy{color:var(--blue);} .pred-asset.agg{color:var(--teal);} .pred-asset.dbc{color:var(--amber);} .pred-asset.tb3ms{color:var(--purple);}
+.pred-arrow{text-align:center;font-size:20px;}
+.pred-arrow.up{color:var(--green);}
+.pred-arrow.dn{color:var(--red);}
+.pred-val{text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;}
+.pred-val.pos{color:var(--green);} .pred-val.neg{color:var(--red);}
+
+.weight-comparison{display:grid;grid-template-columns:50px 1fr 1fr;gap:6px;align-items:center;font-size:10.5px;margin-bottom:6px;}
+.wc-name{font-family:Georgia,serif;font-weight:700;font-size:11px;}
+.wc-name.spy{color:var(--blue);} .wc-name.agg{color:var(--teal);} .wc-name.dbc{color:var(--amber);} .wc-name.tb3ms{color:var(--purple);}
+.wc-bar-track{height:16px;background:var(--white);border:1px solid var(--lgray);border-radius:3px;position:relative;overflow:hidden;}
+.wc-bar-fill{height:100%;transition:width 0.5s;}
+.wc-bar-fill.baseline{background:var(--gray-line);}
+.wc-bar-fill.overlay{background:var(--purple);}
+.wc-bar-val{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--white);font-weight:700;padding-left:5px;line-height:16px;position:relative;}
+.wc-header{display:grid;grid-template-columns:50px 1fr 1fr;gap:6px;margin-bottom:6px;}
+.wc-header div{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--muted);text-align:center;text-transform:uppercase;}
+.wc-header div:first-child{text-align:left;}
+
+.reality-item{background:var(--xlgray);border-left:3px solid;border-radius:5px;padding:8px 10px;margin-bottom:6px;display:grid;grid-template-columns:60px 1fr 70px;gap:6px;align-items:center;transition:all 0.4s;opacity:0;}
+.reality-item.visible{opacity:1;}
+.reality-item.spy{border-left-color:var(--blue);}
+.reality-item.agg{border-left-color:var(--teal);}
+.reality-item.dbc{border-left-color:var(--amber);}
+.reality-item.tb3ms{border-left-color:var(--purple);}
+.reality-name{font-family:Georgia,serif;font-weight:700;font-size:13px;}
+.reality-name.spy{color:var(--blue);} .reality-name.agg{color:var(--teal);} .reality-name.dbc{color:var(--amber);} .reality-name.tb3ms{color:var(--purple);}
+.reality-vis{height:16px;background:var(--white);border:1px solid var(--lgray);border-radius:3px;position:relative;overflow:hidden;}
+.reality-fill{position:absolute;top:0;bottom:0;transition:width 0.5s;}
+.reality-fill.pos{background:var(--green);left:50%;}
+.reality-fill.neg{background:var(--red);right:50%;}
+.reality-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);}
+.reality-val{text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;}
+.reality-val.pos{color:var(--green);} .reality-val.neg{color:var(--red);}
+
+/* Outcome panel */
+.outcome-headline{background:linear-gradient(135deg,var(--lgreen) 0%,var(--lamber) 100%);border:2px solid var(--green);border-radius:8px;padding:12px 14px;margin-bottom:10px;text-align:center;}
+.outcome-headline.negative{background:linear-gradient(135deg,var(--lred) 0%,var(--lamber) 100%);border-color:var(--red);}
+.outcome-lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.outcome-val{font-family:Georgia,serif;font-size:22px;font-weight:700;margin-top:4px;color:var(--ink);}
+.outcome-detail{font-size:11px;color:var(--muted);margin-top:4px;}
+.outcome-comparison{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;}
+.oc-tile{background:var(--xlgray);border-radius:5px;padding:8px 10px;text-align:center;}
+.oc-tile .lbl{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+.oc-tile .val{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;margin-top:2px;}
+.oc-tile .val.pos{color:var(--green);} .oc-tile .val.neg{color:var(--red);}
+
+/* Episode equity chart */
+.equity-chart-panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:14px 18px;margin-bottom:14px;}
+.equity-chart-panel h3{font-family:Georgia,serif;font-size:14px;margin:0 0 12px;color:var(--ink);border-bottom:2px solid var(--amber);padding-bottom:6px;}
+svg.eq-chart{width:100%;height:auto;display:block;}
+
+/* Final verdict */
+.verdict-panel{background:linear-gradient(135deg,#F0FDF4 0%,#FFFBEB 100%);border:2px solid var(--green);border-radius:12px;padding:20px 24px;display:none;margin-bottom:14px;}
+.verdict-panel.show{display:block;}
+.verdict-panel.overlay-lost{background:linear-gradient(135deg,#FEF2F2 0%,#FFFBEB 100%);border-color:var(--red);}
+.verdict-title{font-family:Georgia,serif;font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.verdict-summary{font-size:13px;color:var(--ink);line-height:1.6;}
+.verdict-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.vm{background:var(--white);border:1px solid var(--lgray);border-radius:6px;padding:10px 12px;text-align:center;}
+.vm .lbl{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+.vm .val{font-family:Georgia,serif;font-size:16px;font-weight:700;margin-top:2px;}
+.vm .val.pos{color:var(--green);} .vm .val.neg{color:var(--red);}
+
+.foot{margin-top:20px;padding:12px 18px;background:var(--white);border:1px solid var(--lgray);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;}
+
+/* $1M portfolio tracker */
+.pv-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0;padding:14px 18px;background:linear-gradient(90deg,#F8FAFC 0%,#FFFFFF 100%);border:1px solid var(--lgray);border-left:4px solid var(--amber);border-radius:10px;}
+.pv-title{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.pv-title .lbl{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.pv-title .starting{font-size:10px;color:var(--muted);font-style:italic;}
+.pv-card{padding:10px 14px;background:var(--white);border:1px solid var(--lgray);border-radius:6px;}
+.pv-card .lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.pv-card .val{font-family:Georgia,serif;font-size:22px;font-weight:700;color:var(--ink);margin-top:2px;}
+.pv-card .chg{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-top:3px;}
+.pv-card .chg.pos{color:var(--green);} .pv-card .chg.neg{color:var(--red);}
+.pv-card.mvo{border-left:3px solid var(--blue);}
+.pv-card.oly{border-left:3px solid var(--purple);}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">SCENARIO PLAYBACK · NARRATIVE WALKTHROUGH · v1.0 · PRACTICUM PART 2</div>
+<h1>Play a scenario · watch the entire episode unfold</h1>
+<p class="sub">Pick a scenario, press <b>Play</b>, and watch the framework execute six monthly rebalances in sequence: (1) signal arrives → (2) model infers → (3) rebalance proposed → (4) reality delivers actual returns → (5) outcome revealed. The bottom chart grows month-by-month; the final verdict compares overlay vs baseline at the end of the episode.</p>
+
+<!-- Scenario selector -->
+<div class="scenario-selector" id="sc-selector">
+  <div class="sc-card active" data-scenario="covid">
+    <div class="sc-icon">🦠</div>
+    <div class="sc-name">COVID shock</div>
+    <div class="sc-period">Mar 2020 – Aug 2020</div>
+    <div class="sc-desc">Sudden vol spike, credit spread blowout, real rates collapse. Does the framework catch the regime break?</div>
+  </div>
+  <div class="sc-card" data-scenario="tightening">
+    <div class="sc-icon">📈</div>
+    <div class="sc-name">Fed tightening 2022</div>
+    <div class="sc-period">Jan 2022 – Jun 2022</div>
+    <div class="sc-desc">Simultaneous stock and bond decline. Traditional 60/40 hits a rare synchronous drawdown.</div>
+  </div>
+  <div class="sc-card" data-scenario="latehike">
+    <div class="sc-icon">📊</div>
+    <div class="sc-name">Late-hike cycle 2024</div>
+    <div class="sc-period">Jul 2024 – Dec 2024</div>
+    <div class="sc-desc">Inverted curve, elevated real rates, resilient equity. Ambiguous macro signals.</div>
+  </div>
+  <div class="sc-card" data-scenario="expansion">
+    <div class="sc-icon">📅</div>
+    <div class="sc-name">Steady expansion</div>
+    <div class="sc-period">Jan 2017 – Jun 2017</div>
+    <div class="sc-desc">Steep curve, tight spreads, calm vol. Should the overlay bother doing anything?</div>
+  </div>
+  <div class="sc-card" data-scenario="recession">
+    <div class="sc-icon">📉</div>
+    <div class="sc-name">Recession slide</div>
+    <div class="sc-period">Aug 2013 – Jan 2014</div>
+    <div class="sc-desc">Simulated slow deterioration: curve flattens, credit widens, momentum fades.</div>
+  </div>
+  <div class="sc-card" data-scenario="normal">
+    <div class="sc-icon">➖</div>
+    <div class="sc-name">Uneventful stretch</div>
+    <div class="sc-period">Jun 2015 – Nov 2015</div>
+    <div class="sc-desc">Benign regime, marginal moves. The overlay's Δ should be small — and traceable.</div>
+  </div>
+</div>
+
+<!-- Playback bar -->
+<div class="playback-bar">
+  <button class="btn" id="btn-play">▶ Play scenario</button>
+  <button class="btn sec" id="btn-reset">↻ Reset</button>
+  <div class="phase-display" id="phase-display">Ready · press Play</div>
+  <div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:0%;"></div></div>
+  <div class="speed-group">
+    <button class="speed-btn active" data-speed="1">1×</button>
+    <button class="speed-btn" data-speed="2">2×</button>
+    <button class="speed-btn" data-speed="4">4×</button>
+  </div>
+</div>
+
+<!-- Episode timeline -->
+<div class="timeline-strip" id="timeline-strip"></div>
+
+<!-- Main stage · 3 columns × 2 rows layout for the 5 phases -->
+<div class="stage-grid">
+  <div class="stage-panel signal">
+    <h3>1 · Signal <span class="phase-badge signal">MACRO INPUT</span></h3>
+    <div id="phase-signal-body"><p style="color:var(--muted);font-size:11px;font-style:italic;">Press Play to start · macro features arrive here first…</p></div>
+  </div>
+  <div class="stage-panel model">
+    <h3>2 · Model inference <span class="phase-badge model">AI THINKS</span></h3>
+    <div id="phase-model-body"><p style="color:var(--muted);font-size:11px;font-style:italic;">XGBoost predictions per asset will appear here…</p></div>
+  </div>
+  <div class="stage-panel decision">
+    <h3>3 · Rebalance <span class="phase-badge decision">DECISION</span></h3>
+    <div class="wc-header">
+      <div></div><div style="color:var(--muted);">Baseline</div><div style="color:var(--purple);">Overlay</div>
+    </div>
+    <div id="phase-decision-body"><p style="color:var(--muted);font-size:11px;font-style:italic;">Weight comparison will animate here…</p></div>
+  </div>
+</div>
+<div class="stage-grid" style="grid-template-columns:1fr 1fr;">
+  <div class="stage-panel reality">
+    <h3>4 · Reality <span class="phase-badge reality">MARKET RETURNS</span></h3>
+    <div id="phase-reality-body"><p style="color:var(--muted);font-size:11px;font-style:italic;">This month's actual asset returns will appear here…</p></div>
+  </div>
+  <div class="stage-panel outcome">
+    <h3>5 · Outcome <span class="phase-badge outcome">PORTFOLIO RETURN</span></h3>
+    <div id="phase-outcome-body"><p style="color:var(--muted);font-size:11px;font-style:italic;">Baseline vs overlay portfolio return revealed here…</p></div>
+  </div>
+</div>
+
+<!-- Episode equity chart -->
+<div class="equity-chart-panel">
+  <h3>Episode equity · cumulative growth from $1.00 (updates in real-time)</h3>
+  <svg class="eq-chart" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMid meet">
+    <g id="eq-axes"></g>
+    <g id="eq-lines"></g>
+    <g id="eq-cursor"></g>
+    <g id="eq-labels"></g>
+  </svg>
+  <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted);">
+    <div style="display:flex;align-items:center;gap:5px;"><span style="width:20px;height:3px;background:var(--gray-line);"></span>Baseline (no overlay)</div>
+    <div style="display:flex;align-items:center;gap:5px;"><span style="width:20px;height:3px;background:var(--purple);"></span>Bounded overlay</div>
+  </div>
+</div>
+
+<!-- Final verdict -->
+
+<div class="pv-strip">
+  <div class="pv-title">
+    <span class="lbl">$1,000,000 portfolio value · scenario playback</span>
+    <span class="starting">starting capital · in USD · updates each month</span>
+  </div>
+  <div class="pv-card mvo"><div class="lbl">Baseline (MVO)</div><div class="val" id="pv-mvo">$1,000,000</div><div class="chg" id="pv-mvo-chg">start of scenario</div></div>
+  <div class="pv-card oly"><div class="lbl">With AI overlay</div><div class="val" id="pv-oly">$1,000,000</div><div class="chg" id="pv-oly-chg">start of scenario</div></div>
+</div>
+<div class="verdict-panel" id="verdict-panel">
+  <div class="verdict-title" id="verdict-title">Episode complete · verdict</div>
+  <div class="verdict-summary" id="verdict-summary"></div>
+  <div class="verdict-metrics" id="verdict-metrics"></div>
+</div>
+
+<div class="foot">
+  Scenario Playback v1.0 · narrative walkthrough of the framework · scenarios anchored on plausible macro states of the corresponding period · walk-forward arithmetic r<sub>p</sub> = w · r · Pre-Registration v1.0 (13-Jun-2026) governs constants · Giovany Gomez Molina (x23255927) · MSCDAD_A
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// SCENARIOS · 6 months each with features, weights, returns
+// Each entry = one month; realistic dynamics per scenario
+// ============================================================
+
+// Baseline MVO weights (invariant across scenarios for pedagogy)
+const W_MVO_BASE = {SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09};
+const ASSETS = ["SPY","AGG","DBC","TB3MS"];
+const CAP = 0.10;
+
+// Per-asset XGBoost surrogate coefficients (same as v2.0)
+const COEFFS = {
+  SPY:   {slope:+0.020, credit:+0.008, real:+0.001},
+  AGG:   {slope:-0.018, credit:+0.003, real:+0.000},
+  DBC:   {slope:+0.006, credit:-0.004, real:+0.003},   // H3 REJECTED walk-forward (Final Report)
+  TB3MS: {slope:-0.008, credit:+0.005, real:+0.002},
+};
+
+// SCENARIO DEFINITIONS
+// Each scenario: 6 months, each month has {label, features, assetReturns, mvoWeights}
+const SCENARIOS = {
+  covid: {
+    name: "COVID shock",
+    period: "Mar–Aug 2020",
+    initial: "Volatility hitting record highs. Real rates crushed by emergency Fed easing.",
+    months: [
+      {label:"Mar 2020", f:{slope:-0.05, credit:5.20, real:-2.80}, r:{SPY:-0.125, AGG:-0.008, DBC:-0.150, TB3MS:+0.001}, w:{SPY:0.31, AGG:0.44, DBC:0.11, TB3MS:0.14}},
+      {label:"Apr 2020", f:{slope:+0.35, credit:4.80, real:-2.40}, r:{SPY:+0.128, AGG:+0.005, DBC:+0.145, TB3MS:+0.001}, w:{SPY:0.29, AGG:0.45, DBC:0.11, TB3MS:0.15}},
+      {label:"May 2020", f:{slope:+0.42, credit:3.80, real:-2.10}, r:{SPY:+0.048, AGG:+0.004, DBC:+0.060, TB3MS:+0.001}, w:{SPY:0.30, AGG:0.45, DBC:0.11, TB3MS:0.14}},
+      {label:"Jun 2020", f:{slope:+0.55, credit:2.90, real:-1.85}, r:{SPY:+0.015, AGG:+0.003, DBC:+0.008, TB3MS:+0.001}, w:{SPY:0.32, AGG:0.44, DBC:0.12, TB3MS:0.12}},
+      {label:"Jul 2020", f:{slope:+0.62, credit:2.40, real:-1.50}, r:{SPY:+0.055, AGG:+0.014, DBC:+0.048, TB3MS:+0.001}, w:{SPY:0.33, AGG:0.44, DBC:0.12, TB3MS:0.11}},
+      {label:"Aug 2020", f:{slope:+0.72, credit:2.00, real:-1.30}, r:{SPY:+0.070, AGG:-0.010, DBC:+0.028, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.43, DBC:0.13, TB3MS:0.10}},
+    ],
+  },
+  tightening: {
+    name: "Fed tightening 2022",
+    period: "Jan–Jun 2022",
+    initial: "Simultaneous decline in stocks and bonds. The traditional 60/40 diversification fails.",
+    months: [
+      {label:"Jan 2022", f:{slope:+0.75, credit:1.60, real:+0.20}, r:{SPY:-0.052, AGG:-0.020, DBC:+0.088, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Feb 2022", f:{slope:+0.35, credit:1.85, real:+0.45}, r:{SPY:-0.030, AGG:-0.011, DBC:+0.062, TB3MS:+0.001}, w:{SPY:0.33, AGG:0.44, DBC:0.14, TB3MS:0.09}},
+      {label:"Mar 2022", f:{slope:+0.18, credit:2.10, real:+0.70}, r:{SPY:+0.038, AGG:-0.028, DBC:+0.089, TB3MS:+0.001}, w:{SPY:0.33, AGG:0.43, DBC:0.15, TB3MS:0.09}},
+      {label:"Apr 2022", f:{slope:-0.02, credit:2.35, real:+0.90}, r:{SPY:-0.090, AGG:-0.038, DBC:+0.045, TB3MS:+0.001}, w:{SPY:0.32, AGG:0.43, DBC:0.16, TB3MS:0.09}},
+      {label:"May 2022", f:{slope:-0.15, credit:2.55, real:+1.15}, r:{SPY:+0.001, AGG:+0.006, DBC:+0.015, TB3MS:+0.001}, w:{SPY:0.31, AGG:0.43, DBC:0.17, TB3MS:0.09}},
+      {label:"Jun 2022", f:{slope:-0.30, credit:2.80, real:+1.35}, r:{SPY:-0.083, AGG:-0.015, DBC:-0.108, TB3MS:+0.001}, w:{SPY:0.30, AGG:0.44, DBC:0.16, TB3MS:0.10}},
+    ],
+  },
+  latehike: {
+    name: "Late-hike cycle 2024",
+    period: "Jul–Dec 2024",
+    initial: "Inverted yield curve for many months. Real rates significantly restrictive. Equities remain surprisingly resilient.",
+    months: [
+      {label:"Jul 2024", f:{slope:-0.28, credit:1.35, real:+2.40}, r:{SPY:+0.011, AGG:+0.023, DBC:-0.048, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Aug 2024", f:{slope:-0.18, credit:1.50, real:+2.35}, r:{SPY:+0.023, AGG:+0.014, DBC:+0.008, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Sep 2024", f:{slope:+0.05, credit:1.60, real:+2.10}, r:{SPY:+0.020, AGG:+0.010, DBC:+0.028, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Oct 2024", f:{slope:+0.18, credit:1.75, real:+1.95}, r:{SPY:-0.010, AGG:-0.023, DBC:-0.008, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.43, DBC:0.14, TB3MS:0.09}},
+      {label:"Nov 2024", f:{slope:+0.30, credit:1.60, real:+1.85}, r:{SPY:+0.058, AGG:+0.010, DBC:+0.008, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Dec 2024", f:{slope:+0.28, credit:1.70, real:+1.80}, r:{SPY:-0.025, AGG:-0.017, DBC:-0.020, TB3MS:+0.004}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+    ],
+  },
+  expansion: {
+    name: "Steady expansion",
+    period: "Jan–Jun 2017",
+    initial: "Textbook expansion regime. Steep curve, tight spreads, low vol. All signals green.",
+    months: [
+      {label:"Jan 2017", f:{slope:+1.35, credit:1.30, real:+0.40}, r:{SPY:+0.018, AGG:+0.002, DBC:-0.015, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Feb 2017", f:{slope:+1.42, credit:1.28, real:+0.45}, r:{SPY:+0.038, AGG:+0.007, DBC:-0.001, TB3MS:+0.001}, w:{SPY:0.35, AGG:0.43, DBC:0.13, TB3MS:0.09}},
+      {label:"Mar 2017", f:{slope:+1.48, credit:1.32, real:+0.50}, r:{SPY:+0.010, AGG:-0.005, DBC:-0.028, TB3MS:+0.001}, w:{SPY:0.35, AGG:0.43, DBC:0.13, TB3MS:0.09}},
+      {label:"Apr 2017", f:{slope:+1.52, credit:1.28, real:+0.42}, r:{SPY:+0.010, AGG:+0.007, DBC:+0.005, TB3MS:+0.001}, w:{SPY:0.36, AGG:0.42, DBC:0.13, TB3MS:0.09}},
+      {label:"May 2017", f:{slope:+1.55, credit:1.30, real:+0.45}, r:{SPY:+0.014, AGG:+0.008, DBC:-0.018, TB3MS:+0.001}, w:{SPY:0.36, AGG:0.42, DBC:0.13, TB3MS:0.09}},
+      {label:"Jun 2017", f:{slope:+1.52, credit:1.35, real:+0.55}, r:{SPY:+0.006, AGG:-0.002, DBC:-0.005, TB3MS:+0.001}, w:{SPY:0.36, AGG:0.42, DBC:0.13, TB3MS:0.09}},
+    ],
+  },
+  recession: {
+    name: "Recession slide",
+    period: "Aug 2013–Jan 2014 (simulated)",
+    initial: "Slow deterioration: curve flattening, credit widening, equity momentum decaying.",
+    months: [
+      {label:"Aug 2013", f:{slope:+0.65, credit:2.10, real:+0.30}, r:{SPY:-0.028, AGG:-0.008, DBC:-0.032, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Sep 2013", f:{slope:+0.48, credit:2.30, real:+0.45}, r:{SPY:+0.031, AGG:+0.010, DBC:-0.028, TB3MS:+0.001}, w:{SPY:0.33, AGG:0.44, DBC:0.13, TB3MS:0.10}},
+      {label:"Oct 2013", f:{slope:+0.32, credit:2.55, real:+0.55}, r:{SPY:+0.045, AGG:+0.008, DBC:-0.020, TB3MS:+0.001}, w:{SPY:0.32, AGG:0.44, DBC:0.13, TB3MS:0.11}},
+      {label:"Nov 2013", f:{slope:+0.18, credit:2.85, real:+0.70}, r:{SPY:+0.029, AGG:-0.003, DBC:-0.052, TB3MS:+0.001}, w:{SPY:0.31, AGG:0.44, DBC:0.13, TB3MS:0.12}},
+      {label:"Dec 2013", f:{slope:+0.02, credit:3.10, real:+0.85}, r:{SPY:+0.024, AGG:-0.006, DBC:+0.020, TB3MS:+0.001}, w:{SPY:0.30, AGG:0.45, DBC:0.13, TB3MS:0.12}},
+      {label:"Jan 2014", f:{slope:-0.08, credit:3.30, real:+0.95}, r:{SPY:-0.036, AGG:+0.015, DBC:+0.012, TB3MS:+0.001}, w:{SPY:0.29, AGG:0.45, DBC:0.13, TB3MS:0.13}},
+    ],
+  },
+  normal: {
+    name: "Uneventful stretch",
+    period: "Jun–Nov 2015",
+    initial: "Benign regime, moderate signals. Overlay should barely nudge weights — and that's the point.",
+    months: [
+      {label:"Jun 2015", f:{slope:+1.55, credit:1.70, real:+0.30}, r:{SPY:-0.021, AGG:-0.011, DBC:-0.015, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Jul 2015", f:{slope:+1.50, credit:1.72, real:+0.35}, r:{SPY:+0.021, AGG:+0.007, DBC:-0.050, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Aug 2015", f:{slope:+1.42, credit:1.85, real:+0.40}, r:{SPY:-0.062, AGG:-0.001, DBC:-0.055, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Sep 2015", f:{slope:+1.35, credit:1.92, real:+0.42}, r:{SPY:-0.026, AGG:+0.007, DBC:-0.037, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Oct 2015", f:{slope:+1.40, credit:1.78, real:+0.38}, r:{SPY:+0.083, AGG:+0.001, DBC:-0.012, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+      {label:"Nov 2015", f:{slope:+1.42, credit:1.75, real:+0.40}, r:{SPY:+0.003, AGG:-0.003, DBC:-0.075, TB3MS:+0.001}, w:{SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09}},
+    ],
+  },
+};
+
+// ============================================================
+// COMPUTATIONS
+// ============================================================
+function computeOverlayAdj(features){
+  const raw = {}, capped = {}, wasCapped = {};
+  for (const a of ASSETS){
+    const c = COEFFS[a];
+    raw[a] = c.slope * features.slope + c.credit * features.credit + c.real * features.real;
+    capped[a] = Math.max(-CAP, Math.min(CAP, raw[a]));
+    wasCapped[a] = Math.abs(raw[a] - capped[a]) > 1e-6;
+  }
+  return {raw, capped, wasCapped};
+}
+
+function projectSimplex(w){
+  const clip = Object.fromEntries(Object.entries(w).map(([k,v])=>[k, Math.max(0, v)]));
+  const s = Object.values(clip).reduce((a,b)=>a+b, 0);
+  return Object.fromEntries(Object.entries(clip).map(([k,v])=>[k, v/s]));
+}
+
+function portfolioReturn(w, r){
+  return ASSETS.reduce((s,a) => s + w[a] * r[a], 0);
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScenario = "covid";
+let playing = false;
+let currentMonth = 0;      // 0..5
+let currentPhase = 0;      // 0..4 (per month)
+let speed = 1;
+let phaseTimer = null;
+
+// Episode running totals
+let episodeReturns = {baseline:[], overlay:[]};
+let episodeEquity = {baseline:[1.0], overlay:[1.0]};
+
+const PHASE_NAMES = ["Signal","Model","Rebalance","Reality","Outcome"];
+const PHASE_DURATIONS_MS = [1500, 2000, 1800, 1600, 1800];  // per phase at speed 1×
+
+// ============================================================
+// RENDER · TIMELINE + PANELS
+// ============================================================
+function renderTimeline(){
+  const sc = SCENARIOS[currentScenario];
+  const strip = document.getElementById("timeline-strip");
+  let html = "";
+  sc.months.forEach((m, i) => {
+    let cls;
+    if (i < currentMonth) cls = "past";
+    else if (i === currentMonth) cls = "active";
+    else cls = "future";
+    const ret = episodeReturns.overlay[i];
+    const retDisplay = ret !== undefined
+      ? `<div class="tl-return ${ret>=0?'pos':'neg'}">${ret>=0?'+':''}${(ret*100).toFixed(2)}%</div>`
+      : `<div class="tl-return" style="color:transparent;">—</div>`;
+    html += `<div class="tl-month ${cls}">
+      <div class="tl-num">Month ${i+1}</div>
+      <div class="tl-date">${m.label}</div>
+      ${retDisplay}
+    </div>`;
+  });
+  strip.innerHTML = html;
+}
+
+function clearAllPhases(){
+  document.getElementById("phase-signal-body").innerHTML =
+    '<p style="color:var(--muted);font-size:11px;font-style:italic;">Waiting for signal…</p>';
+  document.getElementById("phase-model-body").innerHTML =
+    '<p style="color:var(--muted);font-size:11px;font-style:italic;">Waiting for inference…</p>';
+  document.getElementById("phase-decision-body").innerHTML = "";
+  document.getElementById("phase-reality-body").innerHTML =
+    '<p style="color:var(--muted);font-size:11px;font-style:italic;">Waiting for market returns…</p>';
+  document.getElementById("phase-outcome-body").innerHTML =
+    '<p style="color:var(--muted);font-size:11px;font-style:italic;">Waiting for outcome…</p>';
+}
+
+function renderPhaseSignal(features){
+  const items = [
+    {name:"Yield-curve slope", val:features.slope, unit:"pp", cls:"h1",
+     tag: features.slope < 0 ? "INVERTED" : features.slope > 1.0 ? "STEEP" : "flat-ish",
+     badgeCls: features.slope < 0 ? "warn" : ""},
+    {name:"Credit spread", val:features.credit, unit:"pp", cls:"h2",
+     tag: features.credit > 3 ? "STRESS" : features.credit > 2 ? "widening" : "tight",
+     badgeCls: features.credit > 3 ? "warn" : ""},
+    {name:"Real short rate", val:features.real, unit:"%", cls:"h3",
+     tag: features.real < -1 ? "SHOCK" : features.real > 1.5 ? "restrictive" : "neutral",
+     badgeCls: features.real < -1 ? "warn" : features.real > 1.5 ? "info" : ""},
+  ];
+  let html = "";
+  items.forEach((it, idx) => {
+    const sign = it.val >= 0 ? "+" : "";
+    html += `<div class="feature-item ${it.cls}" data-idx="${idx}">
+      <div class="name">${it.name} <span class="badge ${it.badgeCls}">${it.tag}</span></div>
+      <div class="value">${sign}${it.val.toFixed(2)} ${it.unit}</div>
+    </div>`;
+  });
+  document.getElementById("phase-signal-body").innerHTML = html;
+  // Reveal one by one
+  document.querySelectorAll("#phase-signal-body .feature-item").forEach((el, i) => {
+    setTimeout(() => el.classList.add("visible"), (i * 300) / speed);
+  });
+}
+
+function renderPhaseModel(features){
+  const {raw} = computeOverlayAdj(features);
+  let html = "";
+  ASSETS.forEach((a, idx) => {
+    const p = raw[a];
+    const arrow = p > 0.005 ? "↑" : (p < -0.005 ? "↓" : "→");
+    const arrowCls = p > 0.005 ? "up" : (p < -0.005 ? "dn" : "");
+    const valCls = p > 0 ? "pos" : "neg";
+    html += `<div class="pred-item ${a.toLowerCase()}" data-idx="${idx}">
+      <div class="pred-asset ${a.toLowerCase()}">${a}</div>
+      <div class="pred-arrow ${arrowCls}">${arrow}</div>
+      <div class="pred-val ${valCls}">${(p*100>=0?'+':'')}${(p*100).toFixed(2)} pp</div>
+    </div>`;
+  });
+  document.getElementById("phase-model-body").innerHTML = html;
+  document.querySelectorAll("#phase-model-body .pred-item").forEach((el, i) => {
+    setTimeout(() => el.classList.add("visible"), (i * 250) / speed);
+  });
+}
+
+function renderPhaseDecision(features, mvoWeights){
+  const {capped, wasCapped} = computeOverlayAdj(features);
+  const rawWeights = Object.fromEntries(ASSETS.map(a => [a, Math.max(0, mvoWeights[a] + capped[a])]));
+  const olyWeights = projectSimplex(rawWeights);
+  const maxW = 0.55;
+
+  let html = `<div class="wc-header">
+      <div></div><div style="color:var(--muted);">Baseline</div><div style="color:var(--purple);">Overlay</div>
+    </div>`;
+
+  for (const a of ASSETS){
+    const wM = mvoWeights[a];
+    const wO = olyWeights[a];
+    const pctM = Math.min(100, (wM/maxW)*100);
+    const pctO = Math.min(100, (wO/maxW)*100);
+    const capNote = wasCapped[a] ? " 🔒" : "";
+    html += `<div class="weight-comparison">
+      <div class="wc-name ${a.toLowerCase()}">${a}</div>
+      <div class="wc-bar-track"><div class="wc-bar-fill baseline" style="width:${pctM}%;"><span class="wc-bar-val">${(wM*100).toFixed(1)}%</span></div></div>
+      <div class="wc-bar-track"><div class="wc-bar-fill overlay" style="width:${pctO}%;"><span class="wc-bar-val">${(wO*100).toFixed(1)}%${capNote}</span></div></div>
+    </div>`;
+  }
+  html += `<div class="callout" style="margin-top:8px;font-size:10.5px;background:var(--lamber);border-left:3px solid var(--amber);padding:6px 10px;border-radius:5px;">
+    <b style="color:var(--amber);">HOTL sign-off:</b> ✅ approved · no Amendment §8 required · audit entry written
+  </div>`;
+  document.getElementById("phase-decision-body").innerHTML = html;
+  return olyWeights;
+}
+
+function renderPhaseReality(assetReturns){
+  const maxAbs = Math.max(...Object.values(assetReturns).map(v => Math.abs(v)), 0.1);
+  let html = "";
+  ASSETS.forEach((a, idx) => {
+    const r = assetReturns[a];
+    const cls = r >= 0 ? "pos" : "neg";
+    const pct = Math.min(50, (Math.abs(r) / maxAbs) * 48);
+    html += `<div class="reality-item ${a.toLowerCase()}" data-idx="${idx}">
+      <div class="reality-name ${a.toLowerCase()}">${a}</div>
+      <div class="reality-vis">
+        <div class="reality-mid"></div>
+        <div class="reality-fill ${cls}" style="width:${pct}%; ${r>0 ? '' : 'right:50%;left:auto;'}"></div>
+      </div>
+      <div class="reality-val ${cls}">${r*100>=0?'+':''}${(r*100).toFixed(2)}%</div>
+    </div>`;
+  });
+  document.getElementById("phase-reality-body").innerHTML = html;
+  document.querySelectorAll("#phase-reality-body .reality-item").forEach((el, i) => {
+    setTimeout(() => el.classList.add("visible"), (i * 200) / speed);
+  });
+}
+
+function renderPhaseOutcome(baseline_r, overlay_r){
+  const delta = overlay_r - baseline_r;
+  const winnerCls = delta >= 0 ? "" : "negative";
+  const winnerMsg = delta > 0.001 ? "Overlay outperformed this month"
+                  : (delta < -0.001 ? "Overlay underperformed this month" : "Overlay ≈ baseline this month");
+  const html = `<div class="outcome-headline ${winnerCls}">
+    <div class="outcome-lbl">${winnerMsg}</div>
+    <div class="outcome-val">${delta*100 >= 0 ? '+' : ''}${(delta*100).toFixed(3)} pp</div>
+    <div class="outcome-detail">Δ portfolio return (overlay − baseline)</div>
+  </div>
+  <div class="outcome-comparison">
+    <div class="oc-tile">
+      <div class="lbl">Baseline r<sub>p</sub></div>
+      <div class="val ${baseline_r>=0?'pos':'neg'}">${baseline_r*100>=0?'+':''}${(baseline_r*100).toFixed(3)}%</div>
+    </div>
+    <div class="oc-tile">
+      <div class="lbl">Overlay r<sub>p</sub></div>
+      <div class="val ${overlay_r>=0?'pos':'neg'}">${overlay_r*100>=0?'+':''}${(overlay_r*100).toFixed(3)}%</div>
+    </div>
+  </div>`;
+  document.getElementById("phase-outcome-body").innerHTML = html;
+}
+
+// ============================================================
+// EPISODE EQUITY CHART
+// ============================================================
+const SVG_W = 1200, SVG_H = 220;
+const M = {top:15, right:60, bottom:30, left:50};
+const PW = SVG_W - M.left - M.right, PH = SVG_H - M.top - M.bottom;
+
+function eqxScale(t, total){ return M.left + (t / total) * PW; }
+function eqyScale(v, min, max){ return M.top + PH - ((v-min)/(max-min))*PH*0.85; }
+
+function drawEquityChart(uptoMonth){
+  const sc = SCENARIOS[currentScenario];
+  const totalMonths = sc.months.length;
+  const eqB = episodeEquity.baseline;
+  const eqO = episodeEquity.overlay;
+  const allVals = [...eqB, ...eqO];
+  const min = Math.min(...allVals, 1.0) * 0.99;
+  const max = Math.max(...allVals, 1.0) * 1.01;
+
+  let axesHtml = "";
+  // Y ticks
+  const tickCount = 4;
+  for (let i = 0; i <= tickCount; i++){
+    const v = min + (max-min)*i/tickCount;
+    const y = eqyScale(v, min, max);
+    axesHtml += `<line x1="${M.left}" x2="${M.left+PW}" y1="${y}" y2="${y}" stroke="#E2E8F0"/>`;
+    axesHtml += `<text x="${M.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#5A6378" font-family="monospace">${v.toFixed(3)}×</text>`;
+  }
+  // X ticks (months)
+  sc.months.forEach((m, i) => {
+    const x = eqxScale(i, totalMonths - 1 > 0 ? totalMonths - 1 : 1);
+    axesHtml += `<line x1="${x}" x2="${x}" y1="${M.top+PH}" y2="${M.top+PH+5}" stroke="#5A6378"/>`;
+    axesHtml += `<text x="${x}" y="${M.top+PH+18}" text-anchor="middle" font-size="10" fill="#5A6378">${m.label.split(' ')[0]}</text>`;
+  });
+  document.getElementById("eq-axes").innerHTML = axesHtml;
+
+  // Lines
+  function pathFor(series){
+    let d = "";
+    for (let i = 0; i < series.length; i++){
+      const x = eqxScale(i, totalMonths);
+      const y = eqyScale(series[i], min, max);
+      d += (i===0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    }
+    return d;
+  }
+  let linesHtml = "";
+  linesHtml += `<path d="${pathFor(eqB)}" fill="none" stroke="#94A3B8" stroke-width="2.5" stroke-dasharray="4,3"/>`;
+  linesHtml += `<path d="${pathFor(eqO)}" fill="none" stroke="#7E22CE" stroke-width="2.8"/>`;
+  // Dots at last point
+  if (eqB.length > 0){
+    const iLast = eqB.length - 1;
+    const xL = eqxScale(iLast, totalMonths);
+    linesHtml += `<circle cx="${xL}" cy="${eqyScale(eqB[iLast], min, max)}" r="5" fill="#94A3B8" stroke="white" stroke-width="2"/>`;
+    linesHtml += `<circle cx="${xL}" cy="${eqyScale(eqO[iLast], min, max)}" r="5" fill="#7E22CE" stroke="white" stroke-width="2"/>`;
+    linesHtml += `<text x="${xL+10}" y="${eqyScale(eqB[iLast], min, max)+4}" font-size="10" fill="#94A3B8" font-weight="700">${eqB[iLast].toFixed(3)}×</text>`;
+    linesHtml += `<text x="${xL+10}" y="${eqyScale(eqO[iLast], min, max)+4}" font-size="10" fill="#7E22CE" font-weight="700">${eqO[iLast].toFixed(3)}×</text>`;
+  }
+  document.getElementById("eq-lines").innerHTML = linesHtml;
+}
+
+// ============================================================
+// PLAYBACK ENGINE
+// ============================================================
+function updateProgress(){
+  const sc = SCENARIOS[currentScenario];
+  const totalPhases = sc.months.length * PHASE_NAMES.length;
+  const done = currentMonth * PHASE_NAMES.length + currentPhase;
+  const pct = (done / totalPhases) * 100;
+  document.getElementById("progress-bar").style.width = pct + "%";
+}
+
+function updatePhaseDisplay(){
+  const sc = SCENARIOS[currentScenario];
+  const m = sc.months[Math.min(currentMonth, sc.months.length-1)];
+  const pName = PHASE_NAMES[currentPhase] || "Complete";
+  document.getElementById("phase-display").textContent = `${m ? m.label : "—"} · ${pName}`;
+}
+
+function executePhase(){
+  const sc = SCENARIOS[currentScenario];
+  const month = sc.months[currentMonth];
+  if (!month){
+    finishEpisode();
+    return;
+  }
+
+  updatePhaseDisplay();
+  updateProgress();
+
+  switch(currentPhase){
+    case 0:
+      renderPhaseSignal(month.f);
+      break;
+    case 1:
+      renderPhaseModel(month.f);
+      break;
+    case 2:
+      const olyWts = renderPhaseDecision(month.f, month.w);
+      window._currentOlyWeights = olyWts;
+      break;
+    case 3:
+      renderPhaseReality(month.r);
+      break;
+    case 4:
+      const olyWtsForRet = window._currentOlyWeights || month.w;
+      const baselineRet = portfolioReturn(month.w, month.r);
+      const overlayRet  = portfolioReturn(olyWtsForRet, month.r);
+      episodeReturns.baseline.push(baselineRet);
+      episodeReturns.overlay.push(overlayRet);
+      episodeEquity.baseline.push(episodeEquity.baseline[episodeEquity.baseline.length-1] * (1+baselineRet));
+      episodeEquity.overlay.push(episodeEquity.overlay[episodeEquity.overlay.length-1] * (1+overlayRet));
+
+      // $1M portfolio tracker · update after month closes
+      const fmtUSD_pv = v => "$" + Math.round(v).toLocaleString("en-US");
+      const bLast = episodeEquity.baseline[episodeEquity.baseline.length - 1];
+      const oLast = episodeEquity.overlay[episodeEquity.overlay.length - 1];
+      const bVal = bLast * 1000000, oVal = oLast * 1000000;
+      const bChg = bVal - 1000000, oChg = oVal - 1000000;
+      const pvMvoEl = document.getElementById("pv-mvo");
+      const pvOlyEl = document.getElementById("pv-oly");
+      const pvMvoChg = document.getElementById("pv-mvo-chg");
+      const pvOlyChg = document.getElementById("pv-oly-chg");
+      if (pvMvoEl) pvMvoEl.textContent = fmtUSD_pv(bVal);
+      if (pvOlyEl) pvOlyEl.textContent = fmtUSD_pv(oVal);
+      if (pvMvoChg){ pvMvoChg.textContent = (bChg>=0?"+":"") + fmtUSD_pv(bChg); pvMvoChg.className = "chg " + (bChg>=0?"pos":"neg"); }
+      if (pvOlyChg){ pvOlyChg.textContent = (oChg>=0?"+":"") + fmtUSD_pv(oChg); pvOlyChg.className = "chg " + (oChg>=0?"pos":"neg"); }
+
+      renderPhaseOutcome(baselineRet, overlayRet);
+      renderTimeline();
+      drawEquityChart(currentMonth);
+      break;
+  }
+
+  if (playing){
+    const dur = PHASE_DURATIONS_MS[currentPhase] / speed;
+    phaseTimer = setTimeout(() => {
+      currentPhase++;
+      if (currentPhase >= PHASE_NAMES.length){
+        currentPhase = 0;
+        currentMonth++;
+        clearAllPhases();
+      }
+      if (currentMonth < sc.months.length){
+        executePhase();
+      } else {
+        finishEpisode();
+      }
+    }, dur);
+  }
+}
+
+function finishEpisode(){
+  playing = false;
+  document.getElementById("btn-play").textContent = "▶ Play scenario";
+  document.getElementById("phase-display").textContent = "Episode complete";
+  document.getElementById("progress-bar").style.width = "100%";
+
+  // Verdict
+  const sc = SCENARIOS[currentScenario];
+  const nMonths = episodeReturns.baseline.length;
+  const cumB = episodeEquity.baseline[nMonths] - 1;
+  const cumO = episodeEquity.overlay[nMonths] - 1;
+  const delta = cumO - cumB;
+  const winnerCls = delta >= 0 ? "" : "overlay-lost";
+  const winnerText = delta > 0.001 ? "The overlay outperformed the baseline during this episode"
+                   : delta < -0.001 ? "The overlay underperformed the baseline during this episode"
+                   : "The overlay tracked the baseline closely during this episode";
+
+  // Sharpe (annualised, monthly returns)
+  function sharpe(r){
+    if (r.length < 2) return NaN;
+    const m = r.reduce((a,b)=>a+b, 0)/r.length;
+    const v = r.reduce((s,x)=>s+(x-m)**2, 0)/(r.length-1);
+    const sd = Math.sqrt(v);
+    return sd === 0 ? NaN : (m/sd) * Math.sqrt(12);
+  }
+  const sB = sharpe(episodeReturns.baseline);
+  const sO = sharpe(episodeReturns.overlay);
+
+  const vp = document.getElementById("verdict-panel");
+  vp.classList.add("show");
+  vp.classList.toggle("overlay-lost", winnerCls === "overlay-lost");
+  document.getElementById("verdict-title").textContent = `Episode complete · ${sc.name}`;
+  document.getElementById("verdict-summary").innerHTML =
+    `${winnerText}. Over the ${nMonths} months from ${sc.months[0].label} to ${sc.months[nMonths-1].label}, `+
+    `the baseline compounded to <b>${(1+cumB).toFixed(3)}×</b> starting capital, while the overlay compounded to <b>${(1+cumO).toFixed(3)}×</b>. ` +
+    `The framework's HOTL cap, SHAP sign check, and audit log were exercised at every rebalance.`;
+  document.getElementById("verdict-metrics").innerHTML =
+    `<div class="vm"><div class="lbl">Baseline cum. return</div><div class="val ${cumB>=0?'pos':'neg'}">${cumB*100>=0?'+':''}${(cumB*100).toFixed(2)}%</div></div>
+     <div class="vm"><div class="lbl">Overlay cum. return</div><div class="val ${cumO>=0?'pos':'neg'}">${cumO*100>=0?'+':''}${(cumO*100).toFixed(2)}%</div></div>
+     <div class="vm"><div class="lbl">Δ (overlay − baseline)</div><div class="val ${delta>=0?'pos':'neg'}">${delta*100>=0?'+':''}${(delta*100).toFixed(3)} pp</div></div>
+     <div class="vm"><div class="lbl">Episode Sharpe (ann.)</div><div class="val">${isNaN(sO)?'—':sO.toFixed(2)} vs ${isNaN(sB)?'—':sB.toFixed(2)}</div></div>`;
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+function play(){
+  if (playing) return;
+  playing = true;
+  document.getElementById("btn-play").textContent = "⏸ Pause";
+  executePhase();
+}
+function pause(){
+  playing = false;
+  document.getElementById("btn-play").textContent = "▶ Play scenario";
+  clearTimeout(phaseTimer);
+}
+function togglePlay(){ playing ? pause() : play(); }
+
+function reset(){
+  // Reset $1M tracker
+  const pvMvoEl = document.getElementById("pv-mvo");
+  const pvOlyEl = document.getElementById("pv-oly");
+  if (pvMvoEl) pvMvoEl.textContent = "$1,000,000";
+  if (pvOlyEl) pvOlyEl.textContent = "$1,000,000";
+  const pvMvoChg = document.getElementById("pv-mvo-chg");
+  const pvOlyChg = document.getElementById("pv-oly-chg");
+  if (pvMvoChg){ pvMvoChg.textContent = "start of scenario"; pvMvoChg.className = "chg"; }
+  if (pvOlyChg){ pvOlyChg.textContent = "start of scenario"; pvOlyChg.className = "chg"; }
+
+  pause();
+  currentMonth = 0;
+  currentPhase = 0;
+  episodeReturns = {baseline:[], overlay:[]};
+  episodeEquity = {baseline:[1.0], overlay:[1.0]};
+  clearAllPhases();
+  document.getElementById("verdict-panel").classList.remove("show");
+  document.getElementById("progress-bar").style.width = "0%";
+  document.getElementById("phase-display").textContent = "Ready · press Play";
+  renderTimeline();
+  drawEquityChart(0);
+}
+
+// Event bindings
+document.querySelectorAll(".sc-card").forEach(card => {
+  card.onclick = () => {
+    document.querySelectorAll(".sc-card").forEach(c => c.classList.remove("active"));
+    card.classList.add("active");
+    currentScenario = card.dataset.scenario;
+    reset();
+  };
+});
+document.getElementById("btn-play").onclick = togglePlay;
+document.getElementById("btn-reset").onclick = reset;
+document.querySelectorAll(".speed-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".speed-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    speed = parseFloat(b.dataset.speed);
+  };
+});
+
+// Initial state
+reset();
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  function tryClick(attempt) {
+    const btn = document.querySelector('#btn-play');
+    if (btn) {
+      const label = (btn.textContent || '').toLowerCase();
+      if (!label.includes('pause') && !label.includes('pausa')) btn.click();
+      return;
+    }
+    if (attempt < 20) setTimeout(() => tryClick(attempt + 1), 200);
+  }
+  if (document.readyState === 'complete') setTimeout(() => tryClick(0), 400);
+  else window.addEventListener('load', () => setTimeout(() => tryClick(0), 400));
+})();
+</script>
+
+</body>
+</html>
