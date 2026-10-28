@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Human Oversight Framework · NCI 75th Anniversary Conference</title>
+<style>
+:root{--ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;--lgray:#E2E8F0;--xlgray:#F1F5F9;--blue:#2563EB;--lblue:#DBEAFE;--teal:#0D9488;--lteal:#CCFBF1;--green:#15803D;--lgreen:#DCFCE7;--amber:#D97706;--lamber:#FEF3C7;--navy:#1A4480;--purple:#7E22CE;--lpurple:#F3E8FF;}
+*{box-sizing:border-box;}
+body{margin:0;padding:36px 32px 60px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#EEF2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.55;min-height:100vh;}
+.wrap{max-width:1500px;margin:0 auto;}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#334155 100%);color:var(--white);padding:36px 44px;border-radius:14px;margin-bottom:28px;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;top:-40%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(217,119,6,0.25) 0%,transparent 70%);}
+.hero-kicker{font-size:12px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:10px;position:relative;}
+.hero h1{font-family:Georgia,serif;font-size:34px;font-weight:700;margin:0 0 10px;line-height:1.2;position:relative;}
+.hero p{font-size:15px;color:#CBD5E1;margin:0;max-width:1000px;position:relative;line-height:1.65;}
+.hero-badges{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;position:relative;}
+.hero-badge{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:6px 14px;font-size:11px;font-weight:700;color:var(--white);letter-spacing:0.5px;}
+.hero-badge.amber{background:rgba(217,119,6,0.25);border-color:var(--amber);color:#FCD34D;}
+
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:22px;margin-bottom:32px;}
+.sim-card{background:var(--white);border:2px solid var(--lgray);border-radius:14px;overflow:hidden;transition:all 0.25s;display:flex;flex-direction:column;position:relative;}
+.sim-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(15,23,42,0.12);}
+.sim-card.blue{border-top:6px solid var(--blue);}
+.sim-card.teal{border-top:6px solid var(--teal);}
+.sim-card.green{border-top:6px solid var(--green);}
+.sim-card.purple{border-top:6px solid var(--purple);}
+.sim-card.amber{border-top:6px solid var(--amber);}
+
+.sim-header{padding:20px 22px 12px;}
+.sim-icon-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.sim-icon{font-size:36px;line-height:1;}
+.sim-tag{font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:12px;letter-spacing:1px;text-transform:uppercase;}
+.sim-tag.blue{background:var(--lblue);color:var(--blue);}
+.sim-tag.teal{background:var(--lteal);color:var(--teal);}
+.sim-tag.green{background:var(--lgreen);color:var(--green);}
+.sim-tag.purple{background:var(--lpurple);color:var(--purple);}
+.sim-tag.amber{background:var(--lamber);color:var(--amber);}
+.sim-num{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+.sim-name{font-family:Georgia,serif;font-size:19px;font-weight:700;color:var(--ink);margin:8px 0 6px;line-height:1.25;}
+.sim-tagline{font-size:12.5px;color:var(--muted);font-style:italic;margin:0 0 12px;}
+.sim-body{padding:12px 22px;flex:1;}
+.sim-features{list-style:none;padding:0;margin:0 0 14px;font-size:12px;color:var(--ink);}
+.sim-features li{padding:4px 0 4px 22px;position:relative;line-height:1.45;}
+.sim-features li::before{content:"\25B8";position:absolute;left:0;color:var(--amber);font-weight:700;}
+.sim-actions{padding:14px 22px 22px;border-top:1px dashed var(--lgray);display:grid;grid-template-columns:1fr;gap:10px;}
+.action-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--white);border:2px solid var(--blue);color:var(--blue);border-radius:8px;padding:14px 16px;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;text-decoration:none;transition:all 0.15s;}
+.action-btn:hover{background:var(--blue);color:var(--white);transform:scale(1.03);}
+
+.quick-strip{background:var(--ink);color:var(--white);padding:16px 24px;border-radius:10px;margin-bottom:24px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;}
+.quick-strip .qlbl{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;}
+.qlink{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--white);padding:6px 12px;border-radius:6px;text-decoration:none;font-size:11.5px;font-weight:700;transition:all 0.15s;}
+.qlink:hover{background:var(--amber);border-color:var(--amber);}
+
+.conf-strip{background:var(--amber);color:var(--white);padding:14px 22px;border-radius:10px;margin-bottom:22px;font-size:13.5px;font-weight:700;text-align:center;letter-spacing:0.3px;}
+
+.foot{margin-top:26px;padding:18px 26px;background:var(--white);border:1px solid var(--lgray);border-radius:10px;font-size:12px;color:var(--muted);}
+.foot .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;}
+.callout{background:var(--lteal);border-left:4px solid var(--teal);border-radius:8px;padding:14px 18px;margin-bottom:22px;font-size:12.5px;line-height:1.55;}
+.callout b{color:var(--teal);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="hero-kicker">NCI 75TH ANNIVERSARY CONFERENCE &middot; 29 OCTOBER 2026</div>
+  <h1>AI Human Oversight for Tactical Asset Allocation</h1>
+  <p>Interactive simulator suite accompanying the oral presentation of our paper "A Pre-Registered Framework Aligned with EU AI Act Article 14". Six browser-based simulators let you explore the HIC/HOTL/HITL framework from different angles, from static regime response to narrative walkthroughs of real market episodes. No installation required.</p>
+  <div class="hero-badges">
+    <span class="hero-badge">6 simulators</span>
+    <span class="hero-badge">EU AI Act Article 14</span>
+    <span class="hero-badge">NIST AI RMF &middot; OECD AI Principles</span>
+    <span class="hero-badge amber">Pre-Registration v1.0 &middot; signed 13-Jun-2026</span>
+  </div>
+</div>
+
+<div class="conf-strip">
+  Session: Responsible AI, fairness and privacy &middot; Room 1.03 &middot; 10:20
+</div>
+
+<div class="quick-strip">
+  <span class="qlbl">Quick jump:</span>
+  <a href="37_Interactive_Markowitz_Baseline_v1.0_EN.html" target="_blank" class="qlink">#37 Markowitz baseline</a>
+  <a href="38_Interactive_Simulator_v1.0_EN.html" target="_blank" class="qlink">#38 Regime to weights</a>
+  <a href="39_Interactive_WalkForward_Playback_v1.0_EN.html" target="_blank" class="qlink">#39 Walk-forward playback</a>
+  <a href="40_Interactive_Faithful_WalkForward_v2.0_EN.html" target="_blank" class="qlink">#40 Faithful arithmetic</a>
+  <a href="41_Interactive_AI_Decision_Cascade_v1.0_EN.html" target="_blank" class="qlink">#41 AI decision cascade</a>
+  <a href="42_Interactive_Scenario_Playback_v1.0_EN.html" target="_blank" class="qlink">#42 Scenario playback</a>
+</div>
+
+<div class="callout">
+  <b>How to use this page.</b> Each card below describes a simulator, what it best answers, and provides direct access. All simulators run in the browser with no installation required and open in a new tab.
+</div>
+
+<div class="sim-grid">
+
+  <div class="sim-card teal">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">\U0001F4D0</span>
+        <div style="text-align:right;"><span class="sim-tag teal">Foundational &middot; The baseline</span><div class="sim-num">FILE #37 &middot; v1.0</div></div>
+      </div>
+      <div class="sim-name">Markowitz Baseline &middot; MVO step by step</div>
+      <p class="sim-tagline">Start here. Understand the classical optimiser before the AI overlay enters.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>Historical performance 2010 to 2024 &middot; four asset equity curves</li>
+        <li>Live estimation of mu (vector) and Sigma (covariance) from 180 monthly returns</li>
+        <li>Interactive sliders for lambda risk-aversion and expected-return override</li>
+        <li>MVO recommendation for 2025 with 1M portfolio allocation</li>
+        <li>Honest verdict panel on whether the historical estimation held or failed</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="37_Interactive_Markowitz_Baseline_v1.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+  <div class="sim-card blue">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">\U0001F39B</span>
+        <div style="text-align:right;"><span class="sim-tag blue">Static &middot; Framework intro</span><div class="sim-num">FILE #38 &middot; v1.0</div></div>
+      </div>
+      <div class="sim-name">Interactive Simulator &middot; regime to weights</div>
+      <p class="sim-tagline">Move sliders. See how the framework responds to a macroeconomic regime.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>3 sliders for the pre-registered features (H1 yield-curve, H2 credit spread, H3 real rate)</li>
+        <li>6 regime presets: Normal, Recession, Stress 2008, Boom, COVID, 2024 late</li>
+        <li>Real-time SHAP attribution table with sign match verification</li>
+        <li>H1 / H2 / H3 verdict cards updating live</li>
+        <li>HOTL cap +/- 10 pp visualised on each asset bar</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="38_Interactive_Simulator_v1.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+  <div class="sim-card teal">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">⏩</span>
+        <div style="text-align:right;"><span class="sim-tag teal">Dynamic &middot; Aggregate</span><div class="sim-num">FILE #39 &middot; v1.0</div></div>
+      </div>
+      <div class="sim-name">Walk-Forward Playback &middot; 180 months animated</div>
+      <p class="sim-tagline">Press Play. Watch the equity curves build month by month across 2010 to 2024.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>Full 180 out-of-sample months in one continuous animation</li>
+        <li>Baseline (navy) vs Overlay (purple) vs 1/N (grey) side by side</li>
+        <li>Drawdown fill &middot; sub-period boundaries &middot; 8 event annotations</li>
+        <li>Playback controls: Play &middot; Step &middot; Reset &middot; Scrubber &middot; 1x/4x/10x/25x</li>
+        <li>Live per-month stats: Sharpe &middot; Delta &middot; MaxDD</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="39_Interactive_WalkForward_Playback_v1.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+  <div class="sim-card green">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">\U0001F9EE</span>
+        <div style="text-align:right;"><span class="sim-tag green">Dynamic &middot; Faithful arithmetic</span><div class="sim-num">FILE #40 &middot; v2.0</div></div>
+      </div>
+      <div class="sim-name">Faithful Walk-Forward &middot; r<sub>p</sub> = w &middot; r visible per month</div>
+      <p class="sim-tagline">The most defensible one. See the arithmetic decompose every month.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>4 asset returns simulated with realistic covariance (Cholesky) &middot; not aggregated shortcut</li>
+        <li>Decomposition table: r_i &middot; w_i,mvo &middot; w_i,oly &middot; Delta w &middot; contribution per asset &middot; portfolio sum</li>
+        <li>Amber "portfolio total" callout, arithmetic identity r_p = w &middot; r</li>
+        <li>Macro state panel with cap-active alert</li>
+        <li>"Verify the arithmetic" reader-check panel</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="40_Interactive_Faithful_WalkForward_v2.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+  <div class="sim-card purple">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">\U0001F9E0</span>
+        <div style="text-align:right;"><span class="sim-tag purple">Structural &middot; Pipeline</span><div class="sim-num">FILE #41 &middot; v1.0</div></div>
+      </div>
+      <div class="sim-name">AI Decision Cascade &middot; 8-stage dissection</div>
+      <p class="sim-tagline">Where does the "AI moment" happen? Zoom into any of the 8 stages of one rebalance.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>8 clickable stage tiles: Signal, XGBoost, SHAP, Delta w, Cap, Simplex, Proposal, Supervisor</li>
+        <li>Per-asset XGBoost card with predicted direction and 200 trees illustration</li>
+        <li>Per-asset SHAP mini-charts with top-6 feature contributions</li>
+        <li>Signal flow: raw to capped to projected</li>
+        <li>Final rebalance card + supervisor 6-check compliance panel</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="41_Interactive_AI_Decision_Cascade_v1.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+  <div class="sim-card amber">
+    <div class="sim-header">
+      <div class="sim-icon-row">
+        <span class="sim-icon">\U0001F3AC</span>
+        <div style="text-align:right;"><span class="sim-tag amber">Narrative &middot; Storytelling</span><div class="sim-num">FILE #42 &middot; v1.0</div></div>
+      </div>
+      <div class="sim-name">Scenario Playback &middot; narrative walkthrough</div>
+      <p class="sim-tagline">The most engaging demo. Play a 6-month episode with 5 phases per rebalance.</p>
+    </div>
+    <div class="sim-body">
+      <ul class="sim-features">
+        <li>6 scenarios: COVID, Fed tightening, Late-hike 2024, Expansion, Recession, Uneventful</li>
+        <li>5-phase animation per month: Signal to Model to Rebalance to Reality to Outcome</li>
+        <li>Episode equity chart grows in real-time as playback progresses</li>
+        <li>Final verdict panel: Sharpe &middot; cumulative return baseline vs overlay &middot; Delta pp</li>
+        <li>Progress bar &middot; timeline strip &middot; 1x/2x/4x speed</li>
+      </ul>
+    </div>
+    <div class="sim-actions">
+      <a class="action-btn" href="42_Interactive_Scenario_Playback_v1.0_EN.html" target="_blank">Open simulator</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  <div class="row">
+    <div>NCI 75th Anniversary Conference &middot; Thursday, 29 October 2026 &middot; Mayor Street, Dublin 1</div>
+    <div>Pre-Registration v1.0 signed 13 June 2026 &middot; SHA-256 fingerprints verifiable</div>
+    <div>Giovany Gomez Molina &middot; x23255927 &middot; Supervisor: Dr. Muhammad Asif Razzaq</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

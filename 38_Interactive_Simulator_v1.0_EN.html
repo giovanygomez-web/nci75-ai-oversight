@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Interactive Simulator · AI Human Oversight Framework · Practicum Part 2</title>
+<style>
+:root{
+  --ink:#1A1F2E;--muted:#5A6378;--paper:#FAFAF7;--white:#FFFFFF;
+  --lgray:#E2E8F0;--xlgray:#F1F5F9;
+  --blue:#2563EB;--lblue:#DBEAFE;
+  --teal:#0D9488;--lteal:#CCFBF1;
+  --green:#15803D;--lgreen:#DCFCE7;
+  --amber:#D97706;--lamber:#FEF3C7;
+  --red:#B91C1C;--lred:#FEE2E2;
+  --purple:#7E22CE;--lpurple:#F3E8FF;
+}
+*{box-sizing:border-box;}
+body{margin:0;padding:24px 32px 40px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#F0F2F7 0%,#FAFAF7 100%);color:var(--ink);line-height:1.5;}
+.wrap{max-width:1400px;margin:0 auto;}
+
+/* Header */
+.kicker{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:3px;margin-bottom:6px;}
+h1{font-family:Georgia,serif;font-size:26px;font-weight:700;margin:0 0 6px;line-height:1.25;}
+.sub{font-size:13px;color:var(--muted);font-style:italic;margin:0 0 20px;}
+
+/* Layout grid */
+.layout{display:grid;grid-template-columns:320px 1fr 340px;gap:18px;}
+@media (max-width:1200px){.layout{grid-template-columns:1fr;}}
+
+/* Panels */
+.panel{background:var(--white);border:1px solid var(--lgray);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.panel h2{font-family:Georgia,serif;font-size:15px;margin:0 0 12px;color:var(--ink);border-bottom:2px solid var(--amber);padding-bottom:6px;}
+.panel h3{font-family:Georgia,serif;font-size:13px;margin:12px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.hint{font-size:11px;color:var(--muted);font-style:italic;margin:6px 0;}
+
+/* Preset buttons */
+.presets{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:14px;}
+.preset-btn{background:var(--white);border:1.5px solid var(--lgray);border-radius:6px;padding:8px 10px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all 0.15s;color:var(--ink);text-align:left;}
+.preset-btn:hover{border-color:var(--amber);background:var(--lamber);}
+.preset-btn.active{border-color:var(--amber);background:var(--lamber);color:var(--amber);}
+.preset-btn .sub{font-size:9.5px;color:var(--muted);font-style:italic;margin-top:2px;font-weight:400;display:block;}
+.preset-btn.active .sub{color:var(--amber);}
+
+/* Slider group */
+.slider-item{margin:12px 0;padding:10px 12px;background:var(--xlgray);border-left:3px solid var(--muted);border-radius:6px;}
+.slider-item.h1{border-left-color:var(--green);}
+.slider-item.h2{border-left-color:var(--red);}
+.slider-item.h3{border-left-color:var(--amber);}
+.slider-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.slider-label{font-size:11px;font-weight:700;color:var(--ink);}
+.slider-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;letter-spacing:0.5px;}
+.slider-badge.h1{background:var(--lgreen);color:var(--green);}
+.slider-badge.h2{background:var(--lred);color:var(--red);}
+.slider-badge.h3{background:var(--lamber);color:var(--amber);}
+.slider-value{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;color:var(--ink);}
+.slider-desc{font-size:10.5px;color:var(--muted);font-style:italic;margin-bottom:8px;}
+input[type=range]{width:100%;height:5px;background:var(--lgray);border-radius:3px;outline:none;-webkit-appearance:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--amber);cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--amber);cursor:pointer;border:none;}
+
+/* Asset weight bars (CENTER panel) */
+.asset-row{display:grid;grid-template-columns:60px 1fr 90px;gap:12px;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--xlgray);border-radius:6px;}
+.asset-name{font-family:Georgia,serif;font-weight:700;font-size:14px;}
+.asset-name.spy{color:var(--blue);}
+.asset-name.agg{color:var(--teal);}
+.asset-name.dbc{color:var(--amber);}
+.asset-name.tb3ms{color:var(--purple);}
+.bar-track{position:relative;height:38px;background:var(--white);border:1px solid var(--lgray);border-radius:4px;overflow:hidden;}
+.bar-mvo{position:absolute;top:0;left:0;height:100%;background:#94A3B8;transition:width 0.3s;display:flex;align-items:center;padding-left:8px;font-size:10px;color:white;font-weight:700;}
+.bar-final{position:absolute;top:0;left:0;height:100%;transition:width 0.3s;opacity:0.7;}
+.bar-final.up{background:var(--green);}
+.bar-final.dn{background:var(--red);}
+.bar-cap{position:absolute;top:0;height:100%;border:2px dashed var(--amber);background:rgba(217,119,6,0.1);pointer-events:none;}
+.bar-marker{position:absolute;top:-2px;height:42px;width:2px;background:var(--ink);}
+.asset-values{text-align:right;font-size:11px;line-height:1.35;}
+.asset-values .mvo-val{color:var(--muted);}
+.asset-values .final-val{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--ink);}
+.asset-values .delta{font-size:10px;font-family:ui-monospace,Menlo,monospace;}
+.asset-values .delta.up{color:var(--green);}
+.asset-values .delta.dn{color:var(--red);}
+.asset-values .delta.zero{color:var(--muted);}
+
+/* Legend */
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin-top:8px;}
+.leg{display:flex;align-items:center;gap:5px;}
+.leg-swatch{width:12px;height:12px;border-radius:2px;}
+
+/* SHAP table (RIGHT panel) */
+.shap-table{width:100%;font-size:11px;border-collapse:collapse;}
+.shap-table th,.shap-table td{border-bottom:1px solid var(--xlgray);padding:6px 8px;text-align:left;}
+.shap-table th{background:var(--xlgray);font-weight:700;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.shap-table td.num{font-family:ui-monospace,Menlo,monospace;text-align:right;}
+.sign-match{color:var(--green);font-weight:700;}
+.sign-miss{color:var(--red);font-weight:700;}
+
+/* Hypothesis verdict */
+.verdict{display:flex;flex-direction:column;gap:8px;}
+.h-card{border:2px solid;border-radius:6px;padding:10px 12px;}
+.h-card.h1{border-color:var(--green);background:var(--lgreen);}
+.h-card.h2{border-color:var(--red);background:var(--lred);}
+.h-card.h3{border-color:var(--amber);background:var(--lamber);}
+.h-card .h-name{font-family:Georgia,serif;font-weight:700;font-size:12px;}
+.h-card.h1 .h-name{color:var(--green);}
+.h-card.h2 .h-name{color:var(--red);}
+.h-card.h3 .h-name{color:var(--amber);}
+.h-card .h-desc{font-size:10.5px;color:var(--ink);margin-top:3px;}
+.h-card .h-status{font-size:10px;font-family:ui-monospace,Menlo,monospace;margin-top:4px;font-weight:700;}
+
+/* HITL/HOTL/HIC oversight status */
+.oversight-row{display:grid;grid-template-columns:50px 1fr auto;gap:10px;padding:8px 10px;background:var(--xlgray);border-radius:5px;margin-bottom:6px;align-items:center;border-left:3px solid;}
+.oversight-row.hic{border-left-color:var(--green);}
+.oversight-row.hotl{border-left-color:var(--amber);}
+.oversight-row.hitl{border-left-color:var(--blue);}
+.oversight-tag{font-family:Georgia,serif;font-weight:700;font-size:12px;text-align:center;}
+.oversight-row.hic .oversight-tag{color:var(--green);}
+.oversight-row.hotl .oversight-tag{color:var(--amber);}
+.oversight-row.hitl .oversight-tag{color:var(--blue);}
+.oversight-text{font-size:10.5px;color:var(--ink);}
+.oversight-check{font-size:16px;font-weight:700;}
+.oversight-check.ok{color:var(--green);}
+.oversight-check.wait{color:var(--muted);}
+
+/* Metrics summary */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.metric{background:var(--xlgray);border-left:3px solid var(--blue);border-radius:5px;padding:8px 10px;}
+.metric .lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.metric .val{font-family:Georgia,serif;font-size:16px;font-weight:700;color:var(--ink);}
+.metric .sub{font-size:9.5px;color:var(--muted);}
+
+/* Audit log */
+.audit{background:var(--ink);color:#CBD5E1;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;padding:10px 12px;border-radius:6px;line-height:1.55;max-height:180px;overflow-y:auto;}
+.audit .k{color:#93C5FD;}
+.audit .s{color:#FCD34D;}
+.audit .c{color:#94A3B8;font-style:italic;}
+
+/* Footer */
+.foot{margin-top:24px;padding:14px 18px;background:var(--white);border:1px solid var(--lgray);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;}
+.foot code{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;background:var(--lblue);padding:1px 5px;border-radius:3px;color:var(--ink);}
+
+/* Explainer callout */
+.callout{background:var(--lteal);border-left:3px solid var(--teal);padding:10px 12px;border-radius:5px;margin:8px 0;font-size:11px;}
+.callout b{color:var(--teal);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">INTERACTIVE SIMULATOR · AI HUMAN OVERSIGHT FRAMEWORK · PRACTICUM PART 2</div>
+<h1>See the framework in action — from macroeconomic regime to portfolio decision</h1>
+<p class="sub">Move the sliders on the left (or pick a preset regime) to change the macro state. Watch how (i) the Markowitz MVO baseline, (ii) the bounded XGBoost overlay, and (iii) the Human Oversight discipline shape the final portfolio allocation. Real-time SHAP attribution shows why the overlay proposes what it proposes, and the H1/H2/H3 sign check evaluates whether the model's behaviour matches the pre-registered expectations.</p>
+
+<div class="layout">
+
+<!-- ============================================ -->
+<!-- LEFT · Macro regime controls -->
+<!-- ============================================ -->
+<div>
+  <div class="panel">
+    <h2>1 · Macro regime</h2>
+    <h3>Presets</h3>
+    <div class="presets">
+      <button class="preset-btn" onclick="applyPreset('normal')" data-preset="normal">Normal
+        <span class="sub">Curve steep · spreads tight</span></button>
+      <button class="preset-btn" onclick="applyPreset('recession')" data-preset="recession">Recession
+        <span class="sub">Curve flat · spreads wide</span></button>
+      <button class="preset-btn" onclick="applyPreset('stress')" data-preset="stress">Stress (2008)
+        <span class="sub">Inverted · GFC-like</span></button>
+      <button class="preset-btn" onclick="applyPreset('boom')" data-preset="boom">Boom
+        <span class="sub">Steep · tight spreads</span></button>
+      <button class="preset-btn" onclick="applyPreset('covid')" data-preset="covid">COVID shock
+        <span class="sub">Real rate deeply negative</span></button>
+      <button class="preset-btn" onclick="applyPreset('current')" data-preset="current">2024 late
+        <span class="sub">Higher-for-longer</span></button>
+    </div>
+
+    <h3>Custom regime</h3>
+    <div class="slider-item h1">
+      <div class="slider-header">
+        <span class="slider-label">Yield-curve slope <span class="slider-badge h1">H1</span></span>
+        <span class="slider-value" id="v-slope">+1.20 pp</span>
+      </div>
+      <div class="slider-desc">10Y − 2Y Treasury spread · positive = expansion signal</div>
+      <input type="range" id="s-slope" min="-2.5" max="3.5" step="0.05" value="1.20">
+    </div>
+
+    <div class="slider-item h2">
+      <div class="slider-header">
+        <span class="slider-label">Credit spread <span class="slider-badge h2">H2</span></span>
+        <span class="slider-value" id="v-credit">1.80 pp</span>
+      </div>
+      <div class="slider-desc">BAA − 10Y Treasury · higher = credit stress</div>
+      <input type="range" id="s-credit" min="0.8" max="6.0" step="0.05" value="1.80">
+    </div>
+
+    <div class="slider-item h3">
+      <div class="slider-header">
+        <span class="slider-label">Real short rate <span class="slider-badge h3">H3</span></span>
+        <span class="slider-value" id="v-real">+0.50 %</span>
+      </div>
+      <div class="slider-desc">3M T-Bill − 5Y inflation exp · positive = restrictive</div>
+      <input type="range" id="s-real" min="-3.5" max="3.5" step="0.05" value="0.50">
+    </div>
+
+    <div class="callout">
+      <b>Why these three?</b> They are the pre-registered features (H1/H2/H3) documented in Pre-Registration §6.3. Their expected SHAP signs were committed on 13-Jun-2026 <em>before</em> any model was fit.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>2 · Oversight status (HITL / HOTL / HIC)</h2>
+    <div class="oversight-row hic">
+      <div class="oversight-tag">HIC</div>
+      <div class="oversight-text"><b>Pre-Reg §6 active</b> · configuration frozen · SHA-256 hashes intact</div>
+      <div class="oversight-check ok">✓</div>
+    </div>
+    <div class="oversight-row hotl">
+      <div class="oversight-tag">HOTL</div>
+      <div class="oversight-text"><b>Cap ± 10% enforced</b> · SHAP audit computed · thresholds monitored</div>
+      <div class="oversight-check ok">✓</div>
+    </div>
+    <div class="oversight-row hitl">
+      <div class="oversight-tag">HITL</div>
+      <div class="oversight-text"><b>Amendment §8 procedure</b> · not triggered · no parameter changes</div>
+      <div class="oversight-check wait">–</div>
+    </div>
+    <p class="hint">All three layers are always visible. The supervisor can intervene at any layer without breaking the pipeline.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- CENTER · Portfolio state -->
+<!-- ============================================ -->
+<div>
+  <div class="panel">
+    <h2>3 · Portfolio allocation · MVO baseline → bounded overlay</h2>
+    <p class="hint">Grey bar = Markowitz MVO baseline weight. Coloured bar = final weight after the overlay adjustment. Dashed amber box = HOTL cap of ±10% per asset.</p>
+
+    <div id="asset-rows"></div>
+
+    <div class="legend">
+      <div class="leg"><span class="leg-swatch" style="background:#94A3B8;"></span>MVO baseline weight</div>
+      <div class="leg"><span class="leg-swatch" style="background:var(--green);"></span>Overlay increased (Δ &gt; 0)</div>
+      <div class="leg"><span class="leg-swatch" style="background:var(--red);"></span>Overlay decreased (Δ &lt; 0)</div>
+      <div class="leg"><span class="leg-swatch" style="background:transparent;border:2px dashed var(--amber);"></span>HOTL ± 10% cap</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>4 · What would this month's return be?</h2>
+    <p class="hint">Under the current regime, the framework produces the following expected monthly return proxy (illustrative). Actual walk-forward returns use realised asset returns of the corresponding month; this simulator uses a plausible regime-conditional expected return for pedagogy.</p>
+    <div class="metrics">
+      <div class="metric" style="border-left-color:#94A3B8;"><div class="lbl">Baseline monthly return</div><div class="val" id="ret-mvo">0.53 %</div><div class="sub">MVO expected</div></div>
+      <div class="metric" style="border-left-color:var(--purple);"><div class="lbl">Overlay monthly return</div><div class="val" id="ret-oly">0.55 %</div><div class="sub">bounded overlay</div></div>
+      <div class="metric" style="border-left-color:var(--amber);"><div class="lbl">Δ this month</div><div class="val" id="ret-delta">+0.02 pp</div><div class="sub">overlay − baseline</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>5 · Audit log (real-time)</h2>
+    <p class="hint">Every regime change produces an audit entry. This is what the traceability principle (§5 of the framework) records for every rebalance in production.</p>
+    <div class="audit" id="audit-log"></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- RIGHT · SHAP attribution + Hypothesis verdicts -->
+<!-- ============================================ -->
+<div>
+  <div class="panel">
+    <h2>6 · SHAP attribution · why the overlay decides</h2>
+    <p class="hint">Per-(feature, asset) contribution to the overlay's proposed adjustment. Compare against the pre-registered expected sign column.</p>
+    <table class="shap-table">
+      <thead>
+        <tr><th>Feature</th><th>Asset</th><th class="num">SHAP</th><th>Exp</th><th>Obs</th></tr>
+      </thead>
+      <tbody id="shap-body"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>7 · Hypothesis verdicts (H1 / H2 / H3)</h2>
+    <p class="hint">Under the current regime, the SHAP sign check for each pre-registered hypothesis.</p>
+    <div class="verdict" id="verdict-panel"></div>
+  </div>
+
+  <div class="panel">
+    <h2>8 · How this maps to the report</h2>
+    <p style="font-size:11px;margin:4px 0;">
+      • Left sliders → <b>pre-registered features</b> (Report §3.2, Appendix B)<br>
+      • Cap ± 10% → <b>HOTL constraint</b> (Report §4, Alg. 5.2)<br>
+      • SHAP attribution → <b>interpretability principle 3</b> (Report §2, Fig. 6.2)<br>
+      • Sign check → <b>H1/H2/H3 evaluation</b> (Report §6.4)<br>
+      • Audit log → <b>traceability principle 5</b> (Config Manual §C.9)
+    </p>
+  </div>
+</div>
+
+</div>
+
+<div class="foot">
+  Interactive simulator v1.0 · illustrative pedagogical tool built on the same pre-registered coefficients as the walk-forward evaluation · Pre-Registration v1.0 (signed 13-Jun-2026, ack 23-Jun-2026) governs experimental discipline · Framework aligned with EU AI Act Article 14 · Giovany Gomez Molina (x23255927) · MSCDAD_A · Supervisor: Dr Muhammad Asif Razzaq
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const ASSETS = ["SPY","AGG","DBC","TB3MS"];
+const ASSET_COLORS = {SPY:"var(--blue)",AGG:"var(--teal)",DBC:"var(--amber)",TB3MS:"var(--purple)"};
+
+// MVO baseline weights (approx typical trailing-window solution)
+const W_MVO = {SPY:0.34, AGG:0.44, DBC:0.13, TB3MS:0.09};
+
+// Constraint: per-asset cap ± 10 pp
+const CAP = 0.10;
+
+// Pre-registered expected SHAP signs (from Pre-Reg §6.3)
+// {feature, asset}: expected sign (+1, -1)
+const EXPECTED_SIGNS = [
+  {feature:"yield_curve_slope", asset:"SPY",   sign:+1, hyp:"H1"},
+  {feature:"yield_curve_slope", asset:"AGG",   sign:-1, hyp:"H1"},
+  {feature:"credit_spread",     asset:"SPY",   sign:-1, hyp:"H2"},
+  {feature:"credit_spread",     asset:"TB3MS", sign:+1, hyp:"H2"},
+  {feature:"real_short_rate",   asset:"DBC",   sign:-1, hyp:"H3"},
+  {feature:"real_short_rate",   asset:"TB3MS", sign:+1, hyp:"H3"},
+];
+
+// Learned XGBoost surrogate coefficients (linearised for pedagogy)
+// Reflects Final Report walk-forward SHAP: H1 CONFIRMED, H2 REJECTED (SPY sign flip), H3 REJECTED (DBC sign flip)
+// Adjustment per asset = sum over features of (coeff * feature_value)
+const OVERLAY_COEFFS = {
+  SPY:   {slope: +0.020, credit: +0.008,  real_rate: +0.001},   // H1 matches; H2 flipped (learned +, expected −)
+  AGG:   {slope: -0.018, credit: +0.003,  real_rate: +0.000},   // H1 matches (negative for bonds)
+  DBC:   {slope: +0.006, credit: -0.004,  real_rate: +0.003},   // H3 REJECTED walk-forward: DBC observed POSITIVE (Final Report Table 5)
+  TB3MS: {slope: -0.008, credit: +0.005,  real_rate: 0.000},    // H2 matches (positive for cash), H3 inconclusive at median (Final Report)
+};
+
+// Regime presets (feature values)
+const PRESETS = {
+  normal:    {slope:+1.20, credit:1.80, real:+0.50},
+  recession: {slope:+0.15, credit:3.20, real:-0.20},
+  stress:    {slope:-0.40, credit:5.50, real:-1.20},
+  boom:      {slope:+2.60, credit:1.10, real:+0.80},
+  covid:     {slope:+1.50, credit:3.80, real:-2.80},
+  current:   {slope:-0.15, credit:2.10, real:+2.40},
+};
+
+// ============================================================
+// DOM refs
+// ============================================================
+const $slope = document.getElementById("s-slope");
+const $credit = document.getElementById("s-credit");
+const $real = document.getElementById("s-real");
+const $vSlope = document.getElementById("v-slope");
+const $vCredit = document.getElementById("v-credit");
+const $vReal = document.getElementById("v-real");
+const $rows = document.getElementById("asset-rows");
+const $shapBody = document.getElementById("shap-body");
+const $verdict = document.getElementById("verdict-panel");
+const $auditLog = document.getElementById("audit-log");
+const $retMvo = document.getElementById("ret-mvo");
+const $retOly = document.getElementById("ret-oly");
+const $retDelta = document.getElementById("ret-delta");
+
+// ============================================================
+// COMPUTATIONS
+// ============================================================
+function computeAdjustments(feat){
+  // feat = {slope, credit, real}
+  // Return {asset: proposed_delta_uncapped, capped_delta}
+  const out = {};
+  for (const a of ASSETS){
+    const c = OVERLAY_COEFFS[a];
+    const raw = c.slope * feat.slope + c.credit * feat.credit + c.real_rate * feat.real;
+    const capped = Math.max(-CAP, Math.min(+CAP, raw));
+    out[a] = {raw, capped};
+  }
+  return out;
+}
+
+function projectToSimplex(w){
+  // Ensure non-negative and sums to 1
+  const clipped = Object.fromEntries(Object.entries(w).map(([k,v])=>[k, Math.max(0, v)]));
+  const s = Object.values(clipped).reduce((a,b)=>a+b, 0);
+  return Object.fromEntries(Object.entries(clipped).map(([k,v])=>[k, v/s]));
+}
+
+function expectedReturn(w, feat){
+  // Simple regime-conditional expected return per asset (illustrative)
+  // Higher slope → better equities; higher credit → worse equities, better cash; higher real → worse commodities
+  const r = {
+    SPY: 0.007 + 0.002*feat.slope - 0.004*feat.credit + 0.001*feat.real,
+    AGG: 0.003 - 0.002*feat.slope + 0.001*feat.credit - 0.001*feat.real,
+    DBC: 0.004 + 0.003*feat.slope + 0.001*feat.credit - 0.003*feat.real,
+    TB3MS: 0.001 - 0.001*feat.slope + 0.002*feat.credit + 0.003*feat.real,
+  };
+  return Object.entries(w).reduce((s,[k,v])=>s + v*r[k], 0);
+}
+
+function computeShapContributions(feat){
+  // Per (feature, asset) contribution (approx = coeff * feature_value, sign-preserving)
+  const contribs = [];
+  for (const {feature, asset, sign, hyp} of EXPECTED_SIGNS){
+    const c = OVERLAY_COEFFS[asset];
+    const featValue = feature === "yield_curve_slope" ? feat.slope
+                    : feature === "credit_spread" ? feat.credit
+                    : feat.real;
+    const coefName = feature === "yield_curve_slope" ? "slope"
+                   : feature === "credit_spread" ? "credit"
+                   : "real_rate";
+    const shap = c[coefName] * featValue;
+    const obsSign = Math.abs(shap) < 1e-4 ? 0 : Math.sign(shap);
+    const match = obsSign === sign;
+    contribs.push({feature, asset, hyp, expectedSign:sign, observedSign:obsSign, shap, match});
+  }
+  return contribs;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function fmt(v, decimals=3, sign=false){
+  if (isNaN(v)) return "—";
+  const s = sign && v >= 0 ? "+" : "";
+  return s + v.toFixed(decimals);
+}
+
+function fmtPct(v, decimals=1, sign=false){
+  if (isNaN(v)) return "—";
+  const s = sign && v >= 0 ? "+" : "";
+  return s + (v*100).toFixed(decimals) + " %";
+}
+
+function readFeatures(){
+  return {
+    slope: parseFloat($slope.value),
+    credit: parseFloat($credit.value),
+    real: parseFloat($real.value),
+  };
+}
+
+function renderAssetRows(){
+  const feat = readFeatures();
+  const adj = computeAdjustments(feat);
+  const wRaw = Object.fromEntries(ASSETS.map(a => [a, W_MVO[a] + adj[a].capped]));
+  const wFinal = projectToSimplex(wRaw);
+
+  let html = "";
+  const maxScale = 0.60; // bars scaled so 60% = 100% of bar width
+  for (const a of ASSETS){
+    const mvo = W_MVO[a];
+    const final = wFinal[a];
+    const delta = final - mvo;
+    const rawDelta = adj[a].raw;
+    const capped = adj[a].capped;
+    const wasCapped = Math.abs(rawDelta - capped) > 1e-6;
+
+    // bar widths (as % of the bar-track width)
+    const mvoPct = Math.min(100, (mvo / maxScale) * 100);
+    const finalPct = Math.min(100, (final / maxScale) * 100);
+    const capLoPct = Math.max(0, ((mvo - CAP) / maxScale) * 100);
+    const capHiPct = Math.min(100, ((mvo + CAP) / maxScale) * 100);
+    const capWidth = capHiPct - capLoPct;
+
+    const deltaClass = delta > 0.005 ? "up" : (delta < -0.005 ? "dn" : "zero");
+    const deltaSign = delta > 0.005 ? "+" : (delta < -0.005 ? "" : "±");
+    const barFinalClass = delta > 0 ? "up" : "dn";
+
+    html += `<div class="asset-row">
+      <div class="asset-name ${a.toLowerCase()}">${a}</div>
+      <div class="bar-track">
+        <div class="bar-cap" style="left:${capLoPct}%;width:${capWidth}%;"></div>
+        <div class="bar-mvo" style="width:${mvoPct}%;">MVO ${fmtPct(mvo,1)}</div>
+        <div class="bar-final ${barFinalClass}" style="width:${finalPct}%;"></div>
+        <div class="bar-marker" style="left:${finalPct}%;"></div>
+      </div>
+      <div class="asset-values">
+        <div class="mvo-val">baseline ${fmtPct(mvo,1)}</div>
+        <div class="final-val">final ${fmtPct(final,1)}</div>
+        <div class="delta ${deltaClass}">Δ ${deltaSign}${(delta*100).toFixed(2)} pp${wasCapped ? ' <span title="Was capped by ±10%">🔒</span>' : ''}</div>
+      </div>
+    </div>`;
+  }
+  $rows.innerHTML = html;
+}
+
+function renderShap(){
+  const feat = readFeatures();
+  const contribs = computeShapContributions(feat);
+  let html = "";
+  for (const c of contribs){
+    const obsStr = c.observedSign > 0 ? "+" : (c.observedSign < 0 ? "−" : "0");
+    const expStr = c.expectedSign > 0 ? "+" : "−";
+    const matchClass = c.match ? "sign-match" : "sign-miss";
+    const matchSymbol = c.match ? "✓" : "✗";
+    html += `<tr>
+      <td>${c.feature.replace(/_/g,' ')}</td>
+      <td>${c.asset}</td>
+      <td class="num">${fmt(c.shap, 4, true)}</td>
+      <td>${expStr}</td>
+      <td class="${matchClass}">${obsStr} ${matchSymbol}</td>
+    </tr>`;
+  }
+  $shapBody.innerHTML = html;
+}
+
+function renderVerdicts(){
+  const feat = readFeatures();
+  const contribs = computeShapContributions(feat);
+  const byHyp = {H1:[], H2:[], H3:[]};
+  for (const c of contribs) byHyp[c.hyp].push(c);
+
+  let html = "";
+  for (const hyp of ["H1","H2","H3"]){
+    const items = byHyp[hyp];
+    const matches = items.filter(c => c.match).length;
+    const allMatch = matches === items.length;
+    const featName = items[0].feature.replace(/_/g,' ');
+    let status;
+    if (allMatch){
+      status = `Directionally supported · ${matches}/${items.length} pair(s) match`;
+    } else if (matches > 0){
+      status = `Mixed · ${matches}/${items.length} pair(s) match`;
+    } else {
+      status = `Sign mismatch · 0/${items.length} pair(s) match`;
+    }
+    html += `<div class="h-card ${hyp.toLowerCase()}">
+      <div class="h-name">${hyp} · ${featName}</div>
+      <div class="h-desc">Under this regime, the ${hyp === "H1" ? "yield-curve slope" : hyp === "H2" ? "credit spread" : "real short rate"} contribution shape is checked against the pre-registered expected signs.</div>
+      <div class="h-status">${status}</div>
+    </div>`;
+  }
+  $verdict.innerHTML = html;
+}
+
+function renderMetrics(){
+  const feat = readFeatures();
+  const adj = computeAdjustments(feat);
+  const wRaw = Object.fromEntries(ASSETS.map(a => [a, W_MVO[a] + adj[a].capped]));
+  const wFinal = projectToSimplex(wRaw);
+  const rMvo = expectedReturn(W_MVO, feat);
+  const rOly = expectedReturn(wFinal, feat);
+  const delta = rOly - rMvo;
+
+  $retMvo.textContent = fmtPct(rMvo, 2, true);
+  $retOly.textContent = fmtPct(rOly, 2, true);
+  const dSign = delta >= 0 ? "+" : "";
+  $retDelta.textContent = dSign + (delta*100).toFixed(3) + " pp";
+  $retDelta.style.color = delta > 0 ? "var(--green)" : (delta < 0 ? "var(--red)" : "var(--muted)");
+}
+
+function pushAudit(){
+  const feat = readFeatures();
+  const now = new Date().toISOString().replace("T"," ").slice(0,19);
+  const line = `<span class="c">[${now}]</span> regime={<span class="k">slope</span>:<span class="s">${feat.slope.toFixed(2)}</span>, <span class="k">credit</span>:<span class="s">${feat.credit.toFixed(2)}</span>, <span class="k">real</span>:<span class="s">${feat.real.toFixed(2)}</span>} · hash-verify: <span class="s">OK</span>`;
+  $auditLog.innerHTML = line + "<br>" + $auditLog.innerHTML;
+  // keep last 20 lines
+  const lines = $auditLog.innerHTML.split("<br>");
+  if (lines.length > 20) $auditLog.innerHTML = lines.slice(0,20).join("<br>");
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+let auditTimer = null;
+function updateAll(){
+  const f = readFeatures();
+  $vSlope.textContent = (f.slope >= 0 ? "+" : "") + f.slope.toFixed(2) + " pp";
+  $vCredit.textContent = f.credit.toFixed(2) + " pp";
+  $vReal.textContent = (f.real >= 0 ? "+" : "") + f.real.toFixed(2) + " %";
+  renderAssetRows();
+  renderShap();
+  renderVerdicts();
+  renderMetrics();
+  // debounce audit log
+  clearTimeout(auditTimer);
+  auditTimer = setTimeout(pushAudit, 500);
+}
+
+function applyPreset(name){
+  const p = PRESETS[name];
+  if (!p) return;
+  $slope.value = p.slope;
+  $credit.value = p.credit;
+  $real.value = p.real;
+  document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`[data-preset="${name}"]`).classList.add("active");
+  updateAll();
+}
+
+[$slope, $credit, $real].forEach(el => el.addEventListener("input", () => {
+  document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+  updateAll();
+}));
+
+// Initial render
+applyPreset("normal");
+</script>
+
+
+<script>
+// Auto-play trigger for Live_Demo_AutoPlay integration (?autoplay=1)
+(function(){
+  if (!new URLSearchParams(location.search).has('autoplay')) return;
+  const presets = ['normal', 'recession', 'stress', 'boom', 'covid', 'current'];
+  let i = 0;
+  function step(){
+    if (typeof applyPreset === 'function') {
+      applyPreset(presets[i % presets.length]);
+      i++;
+    }
+  }
+  function start(){
+    // Initial preset after a short pause so JS is ready
+    setTimeout(() => {
+      step();  // preset 1 (normal)
+      // Cycle every 3.2s: 6 presets in ~19s (fits within the 20s auto-tour slot)
+      setInterval(step, 3200);
+    }, 500);
+  }
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start);
+})();
+</script>
+
+</body>
+</html>
